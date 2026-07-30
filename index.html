@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lawal.org | Preserving Our Heritage. Connecting Our Generations.</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Global Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+  <script>
+    // Tailwind Config Customization
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gold: {
+              DEFAULT: '#D4AF37',
+              hover: '#be992e',
+              light: '#fdfbf2',
+              dark: '#9e7f26'
+            },
+            emerald: {
+              DEFAULT: '#10B981',
+              hover: '#059669',
+              light: '#ECFDF5'
+            },
+            slate: {
+              950: '#0B0F17'
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-200 selection:bg-gold/30 selection:text-gold">
+
+  <!-- Header / Navigation -->
+  <header class="fixed top-0 left-0 w-full z-50 transition-all duration-300 bg-slate-950/80 backdrop-blur-md border-b border-white/5">
+    <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-3">
+        <span class="font-serif text-2xl font-bold tracking-widest text-gold">LAWAL<span class="text-xs tracking-normal text-slate-400 font-sans ml-1">.ORG</span></span>
+      </a>
+      <nav class="hidden md:flex items-center gap-8 font-medium text-sm tracking-wide text-slate-300">
+        <a href="#about" class="hover:text-gold transition-colors">About</a>
+        <a href="#features" class="hover:text-gold transition-colors">Portal Features</a>
+        <a href="#legacy" class="hover:text-gold transition-colors">The Legacy</a>
+      </nav>
+      <div class="flex items-center gap-4" id="nav-actions">
+        <!-- Dynamic based on login state -->
+        <a href="signin.html" class="px-5 h-10 flex items-center text-xs font-semibold tracking-wider uppercase border border-gold/30 rounded-full hover:border-gold hover:text-gold transition-all">Sign In</a>
+        <a href="register.html" class="px-5 h-10 flex items-center text-xs font-semibold tracking-wider uppercase bg-gold hover:bg-gold-hover text-slate-950 rounded-full transition-all">Register</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="relative min-h-screen pt-32 pb-20 flex items-center justify-center overflow-hidden">
+    <!-- Subtle gradient background glows -->
+    <div class="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gold/5 rounded-full blur-[120px] pointer-events-none"></div>
+    <div class="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[500px] h-[500px] bg-emerald/5 rounded-full blur-[120px] pointer-events-none"></div>
+
+    <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-12 gap-12 items-center relative z-10">
+      <!-- Text Area -->
+      <div class="md:col-span-7 flex flex-col items-start gap-6 animate-fade-in">
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gold/10 border border-gold/20 text-gold text-[10px] tracking-widest uppercase font-semibold">
+          <i class="fa-solid fa-shield-halved"></i> Private Family Portal
+        </div>
+        <h1 class="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white tracking-wide leading-tight">
+          Preserving Our Heritage.<br>
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-gold via-yellow-400 to-emerald">Connecting Our Generations.</span>
+        </h1>
+        <p class="text-slate-400 text-base md:text-lg max-w-xl font-light leading-relaxed">
+          Welcome to the official ancestral repository of the Lawal dynasty. A digital space dedicated to documenting our history, mapping our interactive family lineage, sharing generational news, and preserving our values for generations to come.
+        </p>
+        <div class="flex flex-wrap gap-4 mt-4">
+          <a href="signin.html" class="px-8 py-3.5 bg-gradient-to-r from-gold to-gold-hover hover:scale-[1.02] active:scale-[0.98] text-slate-950 font-bold tracking-wider uppercase text-xs rounded-full transition-all flex items-center gap-2 shadow-lg shadow-gold/15">
+            Access Portal <i class="fa-solid fa-arrow-right-to-bracket"></i>
+          </a>
+          <a href="#about" class="px-8 py-3.5 border border-white/10 hover:border-white/30 text-white tracking-wider uppercase text-xs rounded-full transition-all flex items-center gap-2">
+            Our Story
+          </a>
+        </div>
+      </div>
+
+      <!-- Hero Interactive Visual Placeholder / Large Family Image -->
+      <div class="md:col-span-5 relative w-full aspect-[4/5] md:aspect-auto md:h-[500px] flex items-center justify-center">
+        <!-- Outer Glowing border -->
+        <div class="absolute inset-0 bg-gradient-to-b from-gold/10 via-transparent to-emerald/10 rounded-3xl p-[1px]">
+          <div class="w-full h-full bg-slate-900/65 backdrop-blur-xl rounded-3xl overflow-hidden relative group">
+            <!-- Unsplash African family placeholder / premium artwork representation -->
+            <img
+              src="https://images.unsplash.com/photo-1542037104857-ffbb0b9155fb?auto=format&fit=crop&w=800&q=80"
+              alt="Lawal Family Heritage"
+              class="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-1000"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent flex flex-col justify-end p-8">
+              <span class="text-xs text-gold tracking-widest uppercase font-semibold mb-1">Egba Dynasty</span>
+              <h3 class="text-xl font-serif font-bold text-white mb-2">The Lawal Clan</h3>
+              <p class="text-xs text-slate-400 leading-relaxed font-light">
+                Spanning continents and generations, united by a singular heritage of excellence, honor, and community enterprise.
+              </p>
+            </div>
+          </div>
+        </div>
+        <!-- Decorative Frame Accents -->
+        <div class="absolute -top-4 -left-4 w-8 h-8 border-t-2 border-l-2 border-gold/40"></div>
+        <div class="absolute -bottom-4 -right-4 w-8 h-8 border-b-2 border-r-2 border-gold/40"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- About the Family Section -->
+  <section id="about" class="py-24 relative border-t border-white/5 bg-slate-900/40">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="text-center max-w-2xl mx-auto mb-16 flex flex-col items-center gap-3">
+        <span class="text-xs text-gold tracking-widest uppercase font-semibold">Our Roots</span>
+        <h2 class="text-3xl md:text-4xl font-serif font-bold text-white">The History & Ethos of Lawal</h2>
+        <div class="w-12 h-[1px] bg-gold/50 my-2"></div>
+        <p class="text-slate-400 font-light text-sm md:text-base leading-relaxed">
+          Originating from the historic and cultural city of Abeokuta, Ogun State, Nigeria, the Lawal name has stood for scholastic merit, entrepreneurship, and public service for well over a century.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="glass-panel p-8 rounded-2xl border border-white/5 hover:border-gold/20 transition-all flex flex-col gap-4">
+          <div class="w-10 h-10 rounded-lg bg-gold/10 text-gold flex items-center justify-center text-lg">
+            <i class="fa-solid fa-landmark"></i>
+          </div>
+          <h3 class="text-lg font-serif font-semibold text-white">Egba Heritage</h3>
+          <p class="text-slate-400 text-xs font-light leading-relaxed">
+            The foundation of our values rooted in Abeokuta, carrying forward the resilient, intellectual spirit of the historical Yoruba region.
+          </p>
+        </div>
+        <div class="glass-panel p-8 rounded-2xl border border-white/5 hover:border-gold/20 transition-all flex flex-col gap-4">
+          <div class="w-10 h-10 rounded-lg bg-emerald/10 text-emerald flex items-center justify-center text-lg">
+            <i class="fa-solid fa-graduation-cap"></i>
+          </div>
+          <h3 class="text-lg font-serif font-semibold text-white">Academic Pursuits</h3>
+          <p class="text-slate-400 text-xs font-light leading-relaxed">
+            From the University of Ibadan to Oxford and Harvard, our family champions lifelong learning and research that shapes humanity.
+          </p>
+        </div>
+        <div class="glass-panel p-8 rounded-2xl border border-white/5 hover:border-gold/20 transition-all flex flex-col gap-4">
+          <div class="w-10 h-10 rounded-lg bg-gold/10 text-gold flex items-center justify-center text-lg">
+            <i class="fa-solid fa-hands-holding"></i>
+          </div>
+          <h3 class="text-lg font-serif font-semibold text-white">Civic & Community Service</h3>
+          <p class="text-slate-400 text-xs font-light leading-relaxed">
+            Building healthcare initiatives, law practices, and philanthropic funds to elevate society, support the vulnerable, and lead.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section id="features" class="py-24 relative border-t border-white/5">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="text-center max-w-2xl mx-auto mb-16 flex flex-col items-center gap-3">
+        <span class="text-xs text-gold tracking-widest uppercase font-semibold">Portal Features</span>
+        <h2 class="text-3xl md:text-4xl font-serif font-bold text-white">Exclusive Family Resources</h2>
+        <div class="w-12 h-[1px] bg-gold/50 my-2"></div>
+        <p class="text-slate-400 font-light text-sm md:text-base leading-relaxed">
+          Connecting relatives across different continents within a secure private cloud dashboard.
+        </p>
+      </div>
+
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <!-- Feature 1 -->
+        <div class="glass-panel p-6 rounded-2xl hover:border-emerald/30 transition-all flex flex-col gap-3">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-gold/10 to-emerald/10 flex items-center justify-center text-gold text-lg">
+            <i class="fa-solid fa-diagram-project"></i>
+          </div>
+          <h4 class="text-white font-serif font-semibold">Interactive Family Tree</h4>
+          <p class="text-slate-400 text-xs font-light leading-relaxed">
+            Map relationships on an infinite dynamic canvas with pan, zoom, expand/collapse, and detailed cards.
+          </p>
+        </div>
+        <!-- Feature 2 -->
+        <div class="glass-panel p-6 rounded-2xl hover:border-emerald/30 transition-all flex flex-col gap-3">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-gold/10 to-emerald/10 flex items-center justify-center text-emerald text-lg">
+            <i class="fa-solid fa-folder-open"></i>
+          </div>
+          <h4 class="text-white font-serif font-semibold">Document & Media Library</h4>
+          <p class="text-slate-400 text-xs font-light leading-relaxed">
+            Safely store and search birth certificates, historical deeds, military records, and rare transcripts.
+          </p>
+        </div>
+        <!-- Feature 3 -->
+        <div class="glass-panel p-6 rounded-2xl hover:border-emerald/30 transition-all flex flex-col gap-3">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-gold/10 to-emerald/10 flex items-center justify-center text-gold text-lg">
+            <i class="fa-solid fa-calendar-days"></i>
+          </div>
+          <h4 class="text-white font-serif font-semibold">Shared Calendar & News</h4>
+          <p class="text-slate-400 text-xs font-light leading-relaxed">
+            Never miss landmark family events, birthdays, anniversaries, graduations, or global reunions.
+          </p>
+        </div>
+        <!-- Feature 4 -->
+        <div class="glass-panel p-6 rounded-2xl hover:border-emerald/30 transition-all flex flex-col gap-3">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-gold/10 to-emerald/10 flex items-center justify-center text-emerald text-lg">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+          </div>
+          <h4 class="text-white font-serif font-semibold">Generational Timeline</h4>
+          <p class="text-slate-400 text-xs font-light leading-relaxed">
+            Take a digital walk through our ancestors' paths from Yoruba homesteads to contemporary global centers.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-slate-950 border-t border-white/5 py-12 relative z-10">
+    <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
+      <div class="flex flex-col gap-2 items-center md:items-start">
+        <span class="font-serif text-xl font-semibold tracking-wider text-gold">LAWAL.ORG</span>
+        <p class="text-xs text-slate-500 font-light">
+          &copy; 2024 Lawal Family Dynasty. All rights reserved. Private family portal.
+        </p>
+      </div>
+      <div class="flex items-center gap-6 text-xs text-slate-400">
+        <a href="404.html" class="hover:text-gold transition-colors">Privacy Policy</a>
+        <a href="404.html" class="hover:text-gold transition-colors">Terms of Portal Use</a>
+        <a href="404.html" class="hover:text-gold transition-colors">Contact Administrator</a>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module">
+    // Simple state detection and rendering
+    import { DB } from './js/db.js';
+    DB.init();
+
+    const currentUser = JSON.parse(localStorage.getItem('lawal_current_user'));
+    const navActions = document.getElementById('nav-actions');
+
+    if (currentUser) {
+      navActions.innerHTML = `
+        <span class="text-xs text-slate-400 hidden lg:inline mr-2">Welcome back, <strong class="text-gold font-semibold">${currentUser.firstName}</strong></span>
+        <a href="dashboard.html" class="px-5 h-10 flex items-center text-xs font-semibold tracking-wider uppercase bg-gold hover:bg-gold-hover text-slate-950 rounded-full transition-all gap-1.5"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+      `;
+    }
+  </script>
+</body>
+</html>

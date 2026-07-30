@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Document Archives | Lawal.org Portal</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Global Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gold: { DEFAULT: '#D4AF37', hover: '#be992e', light: '#fdfbf2' },
+            emerald: { DEFAULT: '#10B981', hover: '#059669' },
+            slate: { 950: '#0B0F17' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-200 selection:bg-gold/30 selection:text-gold flex min-h-screen">
+
+  <!-- Shared Sidebar Container -->
+  <div id="sidebar-container"></div>
+
+  <!-- Main Content Layout wrapper -->
+  <div class="flex-grow flex flex-col min-w-0 lg:pl-64">
+    <!-- Shared Header Container -->
+    <div id="header-container"></div>
+
+    <!-- Main Workspace documents workspace -->
+    <main class="flex-grow p-6 md:p-8 flex flex-col gap-8 max-w-7xl mx-auto w-full">
+
+      <!-- Headline banner -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+        <div class="flex flex-col gap-1">
+          <h1 class="font-serif text-2xl md:text-3xl font-bold text-white tracking-wide">Document Library</h1>
+          <p class="text-xs text-slate-400 font-light">Search and securely view original civil certificates, land deeds, and military honors.</p>
+        </div>
+        <!-- Upload Document button -->
+        <button id="add-doc-trigger-btn" class="px-4 h-8 bg-gold hover:bg-gold-hover text-slate-950 font-bold tracking-wider text-[10px] uppercase rounded-lg flex items-center gap-1.5 transition-all">
+          <i class="fa-solid fa-cloud-arrow-up"></i> Upload Archive
+        </button>
+      </div>
+
+      <!-- FILTER HEADER TAB CONTROLS -->
+      <section class="grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
+        <!-- Search documents input -->
+        <div class="md:col-span-1 relative">
+          <input
+            type="text"
+            id="doc-search-input"
+            placeholder="Search certificate title..."
+            class="w-full h-9 pl-8 pr-4 bg-slate-900 border border-white/10 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-gold transition-all"
+          />
+          <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </span>
+        </div>
+
+        <!-- Category tabs -->
+        <div class="md:col-span-3 flex flex-wrap gap-2 text-xs" id="doc-category-tabs">
+          <!-- Populated via js/documents.js -->
+        </div>
+      </section>
+
+      <!-- DOCUMENTS ARCHIVE CARDS GRID -->
+      <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="documents-grid">
+        <!-- Populated via js/documents.js -->
+      </section>
+
+    </main>
+  </div>
+
+  <!-- PREMIUM MOCK PDF READER OVERLAY MODAL -->
+  <div id="pdf-viewer-modal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4 transition-all opacity-0 pointer-events-none">
+    <div class="w-full max-w-4xl h-[90vh] bg-slate-900 border border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between transform scale-95 transition-all duration-300" id="pdf-card">
+
+      <!-- Top control bar -->
+      <div class="p-4 bg-slate-950 border-b border-white/5 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 flex items-center justify-center text-sm"><i class="fa-solid fa-file-pdf"></i></div>
+          <div class="flex flex-col min-w-0">
+            <span class="text-xs font-semibold text-white truncate" id="pdf-viewer-title">Birth Certificate (1940).pdf</span>
+            <span class="text-[9px] text-slate-500 font-light" id="pdf-viewer-size">2.4 MB</span>
+          </div>
+        </div>
+
+        <!-- Zoom, Rotate, scroll controls -->
+        <div class="hidden sm:flex items-center gap-2 bg-slate-900 border border-white/5 px-3 h-8 rounded-lg text-xs text-slate-400">
+          <button id="pdf-zoom-out" class="hover:text-white" title="Zoom Out"><i class="fa-solid fa-minus"></i></button>
+          <span class="px-2 border-r border-l border-white/5 font-mono" id="pdf-zoom-percent">100%</span>
+          <button id="pdf-zoom-in" class="hover:text-white" title="Zoom In"><i class="fa-solid fa-plus"></i></button>
+        </div>
+
+        <button id="close-pdf-btn" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Simulated Document Pages Canvas area -->
+      <div class="flex-grow bg-slate-950 p-6 overflow-y-auto flex items-center justify-center relative">
+        <!-- Interactive vintage blueprint document preview -->
+        <div class="w-[500px] h-[700px] bg-[#EADDCA] border border-black/10 rounded-lg p-10 flex flex-col justify-between text-left shadow-2xl text-slate-800 transition-transform duration-200" id="pdf-simulated-canvas">
+          <div class="flex flex-col gap-6">
+            <div class="flex justify-between items-start border-b border-slate-900 pb-4">
+              <div class="flex flex-col">
+                <span class="font-serif text-sm font-bold tracking-wider uppercase text-slate-900">Official Civil Records</span>
+                <span class="text-[8px] tracking-wide text-slate-600">Colonial Administration Registry Office</span>
+              </div>
+              <span class="text-xs font-bold font-serif tracking-widest text-slate-900">№ 18940/A</span>
+            </div>
+
+            <div class="flex flex-col gap-4 py-4">
+              <h2 class="font-serif text-xl font-bold text-center uppercase tracking-wide text-slate-950" id="pdf-cert-header">CERTIFICATE RECORD</h2>
+              <div class="w-12 h-[1px] bg-slate-900 mx-auto my-1"></div>
+
+              <div class="flex flex-col gap-3.5 text-xs font-serif leading-relaxed text-slate-900 mt-2">
+                <p>This document certifies the official historical registration within the family records of Lawal.org.</p>
+                <div class="grid grid-cols-3 gap-2 border-t border-b border-slate-900/30 py-3 text-[10px]">
+                  <div><strong>Archival ID:</strong> <br><span id="pdf-meta-id">kola-1940</span></div>
+                  <div><strong>Date Filed:</strong> <br><span id="pdf-meta-date">12 Apr 1940</span></div>
+                  <div><strong>Registered:</strong> <br>Abeokuta Registry</div>
+                </div>
+                <p class="italic text-[10px] text-slate-600 leading-normal" id="pdf-cert-desc">
+                  This record is secured and restricted for biological descendents of the late Alhaji Kolawole Lawal only.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-between items-center border-t border-slate-900/20 pt-4 text-[9px] text-slate-600">
+            <span>Archivist: S. Balogun</span>
+            <span>&copy; Lawal.org Generational Archives</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Footer -->
+      <div class="p-4 bg-slate-950 border-t border-white/5 flex justify-end gap-2.5">
+        <button id="pdf-print-btn" class="px-4 h-9 bg-white/5 hover:bg-white/10 text-white rounded-lg font-semibold tracking-wider text-[10px] uppercase transition-colors"><i class="fa-solid fa-print"></i> Print Record</button>
+        <button id="pdf-download-btn" class="px-5 h-9 bg-gold text-slate-950 hover:bg-gold-hover rounded-lg font-bold tracking-wider text-[10px] uppercase transition-colors"><i class="fa-solid fa-download"></i> Download Original PDF</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Reusable navigation launcher modules -->
+  <script type="module" src="js/navigation.js"></script>
+  <script type="module" src="js/documents.js"></script>
+</body>
+</html>

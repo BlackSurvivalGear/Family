@@ -1,0 +1,136 @@
+/*
+  Lawal.org Premium Dark Theme Global Custom Styles
+  Incorporates gold (#D4AF37) and emerald (#10B981 / #059669) accents.
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --color-gold-50: #fdfbf2;
+  --color-gold-100: #fbf7e6;
+  --color-gold-200: #f5ebb8;
+  --color-gold-300: #eeda8a;
+  --color-gold-400: #e7ca5c;
+  --color-gold-500: #d4af37; /* Premium Gold */
+  --color-gold-600: #be992e;
+  --color-gold-700: #9e7f26;
+  --color-gold-800: #7f651f;
+  --color-gold-900: #68531a;
+
+  --color-emerald-500: #10B981; /* Premium Emerald */
+  --color-emerald-600: #059669;
+
+  --font-serif: 'Cinzel', Georgia, serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Custom CSS Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 175, 55, 0.6);
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #0B0F17; /* Dark navy-slate */
+  color: #E2E8F0;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, .font-serif {
+  font-family: var(--font-serif);
+}
+
+/* Glassmorphism Classes */
+.glass-panel {
+  background: rgba(30, 41, 59, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.glass-panel-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.glass-panel-hover:hover {
+  background: rgba(30, 41, 59, 0.65);
+  border-color: rgba(212, 175, 55, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
+.gold-glow:hover {
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.15);
+}
+
+.emerald-glow:hover {
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+/* Tree pan/zoom utility classes */
+#tree-canvas {
+  cursor: grab;
+  user-select: none;
+}
+#tree-canvas:active {
+  cursor: grabbing;
+}
+
+/* Quick utility variables */
+.text-gold {
+  color: var(--color-gold-500);
+}
+.border-gold {
+  border-color: var(--color-gold-500);
+}
+.bg-gold {
+  background-color: var(--color-gold-500);
+}
+.text-emerald {
+  color: var(--color-emerald-500);
+}
+.bg-emerald {
+  background-color: var(--color-emerald-500);
+}
+
+/* Light / Dark overrides based on data-theme="light" */
+[data-theme="light"] {
+  background-color: #F8FAFC;
+  color: #1E293B;
+}
+[data-theme="light"] .glass-panel {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+[data-theme="light"] .glass-panel-hover:hover {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(212, 175, 55, 0.3);
+}
+[data-theme="light"] ::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.4);
+}

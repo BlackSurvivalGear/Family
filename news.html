@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generational Chronicles Feed | Lawal.org Portal</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Global Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gold: { DEFAULT: '#D4AF37', hover: '#be992e', light: '#fdfbf2' },
+            emerald: { DEFAULT: '#10B981', hover: '#059669' },
+            slate: { 950: '#0B0F17' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-200 selection:bg-gold/30 selection:text-gold flex min-h-screen">
+
+  <!-- Shared Sidebar Container -->
+  <div id="sidebar-container"></div>
+
+  <!-- Main Content Layout wrapper -->
+  <div class="flex-grow flex flex-col min-w-0 lg:pl-64">
+    <!-- Shared Header Container -->
+    <div id="header-container"></div>
+
+    <!-- Main Workspace news workspace -->
+    <main class="flex-grow p-6 md:p-8 flex flex-col gap-8 max-w-7xl mx-auto w-full">
+
+      <!-- Headline banner -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+        <div class="flex flex-col gap-1">
+          <h1 class="font-serif text-2xl md:text-3xl font-bold text-white tracking-wide">Family Announcements</h1>
+          <p class="text-xs text-slate-400 font-light">Announce and celebrate births, graduations, achievements, or honor obituaries within our lineage.</p>
+        </div>
+        <!-- Write announcement trigger -->
+        <button id="add-news-trigger-btn" class="px-4 h-8 bg-emerald hover:bg-emerald-hover text-slate-950 font-bold tracking-wider text-[10px] uppercase rounded-lg flex items-center gap-1.5 transition-all">
+          <i class="fa-solid fa-pen-nib"></i> Publish Notice
+        </button>
+      </div>
+
+      <!-- MAIN LAYOUT: CHRONICLES CARDS VS FILTERS -->
+      <section class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+        <!-- Left Side: Announcements timeline feed (8 cols) -->
+        <div class="lg:col-span-8 flex flex-col gap-6" id="news-timeline-feed">
+          <!-- Populated via js/news.js -->
+        </div>
+
+        <!-- Right Side: Sidebar categories filters (4 cols) -->
+        <div class="lg:col-span-4 flex flex-col gap-6">
+          <div class="glass-panel border border-white/5 rounded-2xl p-5 flex flex-col gap-4">
+            <span class="text-xs font-serif font-bold text-white uppercase tracking-wider flex items-center gap-2 border-b border-white/5 pb-2">
+              <i class="fa-solid fa-filter text-gold text-[10px]"></i> Announcement Filter
+            </span>
+            <div class="flex flex-col gap-2" id="news-category-filters">
+              <!-- Populated dynamically via js/news.js -->
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Reusable navigation launcher modules -->
+  <script type="module" src="js/navigation.js"></script>
+  <script type="module" src="js/news.js"></script>
+</body>
+</html>

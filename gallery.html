@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generational Media Vault | Lawal.org Portal</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Global Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gold: { DEFAULT: '#D4AF37', hover: '#be992e', light: '#fdfbf2' },
+            emerald: { DEFAULT: '#10B981', hover: '#059669' },
+            slate: { 950: '#0B0F17' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-200 selection:bg-gold/30 selection:text-gold flex min-h-screen">
+
+  <!-- Shared Sidebar Container -->
+  <div id="sidebar-container"></div>
+
+  <!-- Main Content Layout wrapper -->
+  <div class="flex-grow flex flex-col min-w-0 lg:pl-64">
+    <!-- Shared Header Container -->
+    <div id="header-container"></div>
+
+    <!-- Main Workspace gallery workspace -->
+    <main class="flex-grow p-6 md:p-8 flex flex-col gap-8 max-w-7xl mx-auto w-full">
+
+      <!-- Headline banner -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+        <div class="flex flex-col gap-1">
+          <h1 class="font-serif text-2xl md:text-3xl font-bold text-white tracking-wide">Media Gallery</h1>
+          <p class="text-xs text-slate-400 font-light">Elegantly preserved photographs capturing our marriages, military decorations, and travels.</p>
+        </div>
+        <!-- Album category selectors -->
+        <div class="flex flex-wrap gap-2 text-xs" id="album-tabs">
+          <!-- Populated dynamically via js/gallery.js -->
+        </div>
+      </div>
+
+      <!-- PHOTO MASONRY GRID -->
+      <section class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="gallery-grid">
+        <!-- Dynamically populated via js/gallery.js -->
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODERN LIGHTBOX MODAL OVERLAY -->
+  <div id="lightbox-modal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 transition-all opacity-0 pointer-events-none">
+
+    <!-- Header control bar -->
+    <div class="absolute top-6 right-6 flex items-center gap-4 z-50">
+      <span class="text-xs text-slate-400 font-light" id="lightbox-index">-- / --</span>
+      <button id="close-lightbox-btn" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 hover:text-white transition-colors text-lg" title="Close Lightbox">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- Main Image view area -->
+    <div class="relative max-w-4xl max-h-[75vh] w-full flex items-center justify-center">
+
+      <!-- Arrow Left -->
+      <button id="prev-lightbox-btn" class="absolute -left-4 sm:left-4 w-11 h-11 rounded-full bg-slate-900/60 border border-white/5 hover:bg-slate-900 hover:border-gold/20 flex items-center justify-center text-slate-400 hover:text-white transition-all text-sm z-50" title="Previous Image">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+
+      <!-- Active Photo image element -->
+      <img src="" id="lightbox-img" alt="Active lightbox image" class="max-w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl border border-white/5 transform scale-95 transition-transform duration-300">
+
+      <!-- Arrow Right -->
+      <button id="next-lightbox-btn" class="absolute -right-4 sm:right-4 w-11 h-11 rounded-full bg-slate-900/60 border border-white/5 hover:bg-slate-900 hover:border-gold/20 flex items-center justify-center text-slate-400 hover:text-white transition-all text-sm z-50" title="Next Image">
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    </div>
+
+    <!-- Description footnote -->
+    <div class="mt-6 text-center max-w-xl flex flex-col gap-1.5 z-10">
+      <span class="text-xs font-serif font-bold text-gold tracking-widest uppercase" id="lightbox-category">ALBUM</span>
+      <h3 class="text-sm font-semibold text-white tracking-wide" id="lightbox-title">Photo title description</h3>
+      <p class="text-xs text-slate-400 font-light" id="lightbox-desc">Lorem ipsum placeholder.</p>
+    </div>
+
+  </div>
+
+  <!-- Reusable navigation launcher modules -->
+  <script type="module" src="js/navigation.js"></script>
+  <script type="module" src="js/gallery.js"></script>
+</body>
+</html>

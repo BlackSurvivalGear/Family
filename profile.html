@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My User Profile | Lawal.org Portal</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Global Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gold: { DEFAULT: '#D4AF37', hover: '#be992e', light: '#fdfbf2' },
+            emerald: { DEFAULT: '#10B981', hover: '#059669' },
+            slate: { 950: '#0B0F17' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-200 selection:bg-gold/30 selection:text-gold flex min-h-screen">
+
+  <!-- Shared Sidebar Container -->
+  <div id="sidebar-container"></div>
+
+  <!-- Main Content Layout wrapper -->
+  <div class="flex-grow flex flex-col min-w-0 lg:pl-64">
+    <!-- Shared Header Container -->
+    <div id="header-container"></div>
+
+    <!-- Main Workspace profile workspace -->
+    <main class="flex-grow p-6 md:p-8 flex flex-col gap-8 max-w-3xl mx-auto w-full">
+
+      <!-- Headline banner -->
+      <div class="flex flex-col gap-1 border-b border-white/5 pb-4">
+        <h1 class="font-serif text-2xl md:text-3xl font-bold text-white tracking-wide">My User Profile</h1>
+        <p class="text-xs text-slate-400 font-light">Manage your biological credentials, contact coordinates, and secure access permissions.</p>
+      </div>
+
+      <!-- PROFILE FORM CARD -->
+      <section class="glass-panel p-6 md:p-8 rounded-3xl border border-white/10 flex flex-col gap-6 text-left shadow-2xl animate-fade-in">
+
+        <div class="flex items-center gap-4 border-b border-white/5 pb-4">
+          <img id="user-p-avatar" src="" alt="avatar" class="w-16 h-16 rounded-2xl object-cover border-2 border-gold/30 shadow-lg">
+          <div class="flex flex-col">
+            <h2 class="text-lg font-serif font-bold text-white" id="user-p-fullName">--</h2>
+            <span class="text-xs text-gold" id="user-p-role">--</span>
+          </div>
+        </div>
+
+        <form id="profile-edit-form" class="flex flex-col gap-5 text-xs text-slate-300">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">First Name</label>
+              <input type="text" id="prof-firstName" required class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold"/>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Last Name</label>
+              <input type="text" id="prof-lastName" required class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold"/>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Personal Email</label>
+              <input type="email" id="prof-email" required class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold"/>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Avatar Image URL</label>
+              <input type="url" id="prof-avatar" required class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold"/>
+            </div>
+          </div>
+
+          <button type="submit" class="h-10 bg-gold text-slate-950 font-bold tracking-wider uppercase text-[10px] rounded-lg hover:bg-gold-hover transition-colors shadow-lg shadow-gold/5 mt-2">
+            Save Changes <i class="fa-solid fa-save ml-1"></i>
+          </button>
+        </form>
+
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Reusable navigation launcher modules -->
+  <script type="module" src="js/navigation.js"></script>
+  <script type="module" src="js/profile.js"></script>
+</body>
+</html>

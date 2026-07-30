@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Family Tree | Lawal.org Portal</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Global Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gold: { DEFAULT: '#D4AF37', hover: '#be992e', light: '#fdfbf2' },
+            emerald: { DEFAULT: '#10B981', hover: '#059669' },
+            slate: { 950: '#0B0F17' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-200 selection:bg-gold/30 selection:text-gold flex min-h-screen">
+
+  <!-- Shared Sidebar Container -->
+  <div id="sidebar-container"></div>
+
+  <!-- Main Content Layout wrapper -->
+  <div class="flex-grow flex flex-col min-w-0 lg:pl-64">
+    <!-- Shared Header Container -->
+    <div id="header-container"></div>
+
+    <!-- Tree Workspace Page Content -->
+    <main class="flex-grow flex flex-col relative h-[calc(100vh-5rem)]">
+
+      <!-- Top Control / Breadcrumb & Status Panel -->
+      <div class="h-14 border-b border-white/5 px-6 flex items-center justify-between bg-slate-950/40 backdrop-blur z-20 shrink-0">
+        <div class="flex items-center gap-3 text-xs">
+          <span class="text-slate-500 font-medium uppercase tracking-wider">Ancestry Lineage:</span>
+          <!-- Dynamic Breadcrumbs -->
+          <div class="flex items-center gap-1.5 text-slate-300" id="tree-breadcrumbs">
+            <span class="hover:text-gold cursor-pointer transition-colors" id="root-breadcrumb">Patriarch Kolawole</span>
+            <i class="fa-solid fa-angle-right text-[10px] text-slate-600"></i>
+            <span class="text-gold font-medium">Interactive Canvas</span>
+          </div>
+        </div>
+
+        <!-- Real-Time Interactive Tree Search Bar -->
+        <div class="flex items-center gap-4">
+          <button id="add-member-trigger-btn" class="px-3.5 h-8 bg-emerald hover:bg-emerald-hover text-slate-950 font-bold tracking-wider text-xs rounded-lg flex items-center gap-1.5 transition-all shadow-md shadow-emerald/10">
+            <i class="fa-solid fa-plus text-[10px]"></i> Add Relative
+          </button>
+
+          <div class="relative hidden sm:block">
+            <input
+              type="text"
+              id="tree-search-input"
+              placeholder="Find relative in tree..."
+              class="w-56 h-8 pl-8 pr-4 bg-slate-900 border border-white/10 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-gold transition-all"
+            />
+            <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]">
+              <i class="fa-solid fa-magnifying-glass"></i>
+            </span>
+            <!-- Autocomplete list popup -->
+            <div id="tree-search-autocomplete" class="hidden absolute top-9 left-0 w-full bg-slate-900 border border-white/10 rounded-lg shadow-2xl max-h-48 overflow-y-auto z-50 p-1 flex flex-col text-xs"></div>
+          </div>
+
+          <!-- Color Coding Indicators Legend button -->
+          <button id="legend-btn" class="text-xs text-slate-400 hover:text-white flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-info text-gold"></i> Legend
+          </button>
+        </div>
+      </div>
+
+      <!-- INFINITE CANVAS TREE VIEWER -->
+      <div class="flex-grow overflow-hidden relative bg-[#090C12] select-none" id="viewport-container">
+
+        <!-- Canvas Grid Background pattern -->
+        <div class="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] opacity-40 pointer-events-none"></div>
+
+        <!-- Floating Control Panel Toolbar -->
+        <div class="absolute bottom-6 left-6 z-20 flex flex-col sm:flex-row gap-2 bg-slate-950/80 backdrop-blur-md border border-white/10 p-2 rounded-xl shadow-2xl">
+          <button id="zoom-in-btn" class="w-9 h-9 bg-slate-900 hover:bg-white/5 rounded-lg flex items-center justify-center text-slate-300 hover:text-white transition-colors" title="Zoom In">
+            <i class="fa-solid fa-plus text-sm"></i>
+          </button>
+          <button id="zoom-out-btn" class="w-9 h-9 bg-slate-900 hover:bg-white/5 rounded-lg flex items-center justify-center text-slate-300 hover:text-white transition-colors" title="Zoom Out">
+            <i class="fa-solid fa-minus text-sm"></i>
+          </button>
+          <button id="zoom-reset-btn" class="w-9 h-9 bg-slate-900 hover:bg-white/5 rounded-lg flex items-center justify-center text-slate-300 hover:text-white transition-colors" title="Reset Camera View">
+            <i class="fa-solid fa-expand text-sm"></i>
+          </button>
+          <button id="recenter-patriarch-btn" class="px-3 h-9 bg-slate-900 hover:bg-white/5 rounded-lg flex items-center gap-1.5 text-xs text-gold font-medium transition-colors" title="Center on Kolawole Lawal">
+            <i class="fa-solid fa-crosshairs"></i> Center Roots
+          </button>
+          <div class="w-[1px] h-9 bg-white/5 hidden sm:block"></div>
+          <button id="toggle-minimap-btn" class="px-3 h-9 bg-slate-900 hover:bg-white/5 rounded-lg flex items-center gap-1.5 text-xs text-slate-300 hover:text-white transition-colors" title="Toggle Mini Map Preview">
+            <i class="fa-solid fa-map"></i> Minimap
+          </button>
+        </div>
+
+        <!-- Floating Legend box overlay -->
+        <div id="legend-overlay" class="hidden absolute top-6 right-6 z-20 w-52 bg-slate-950/90 backdrop-blur border border-white/10 p-4 rounded-xl shadow-2xl flex flex-col gap-2.5 animate-fade-in">
+          <div class="flex justify-between items-center pb-1 border-b border-white/5">
+            <span class="text-xs font-serif font-bold text-white tracking-wide">Status Legend</span>
+            <button id="close-legend-btn" class="text-[10px] text-slate-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-[10px] text-slate-400 font-light">
+            <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-emerald"></span> Living</div>
+            <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-slate-600"></span> Deceased</div>
+            <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> Male</div>
+            <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-pink-500"></span> Female</div>
+            <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span> Unknown</div>
+          </div>
+        </div>
+
+        <!-- Dynamic Mini Map Overlay Panel -->
+        <div id="minimap-panel" class="absolute bottom-6 right-6 z-20 w-44 h-32 bg-slate-950/90 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden shadow-2xl flex flex-col justify-between p-1.5">
+          <div class="text-[9px] uppercase tracking-wider text-slate-500 font-semibold px-1 flex items-center justify-between">
+            <span>Mini Map</span>
+            <span class="w-1.5 h-1.5 bg-emerald rounded-full animate-pulse"></span>
+          </div>
+          <!-- Miniature representation viewport area -->
+          <div class="flex-grow bg-slate-900/60 rounded-lg relative overflow-hidden" id="minimap-canvas-area">
+            <!-- Dynamically rendered miniature dots representing cards -->
+            <div id="minimap-cards-layer" class="absolute inset-0"></div>
+            <!-- Red box representing current viewport boundaries -->
+            <div id="minimap-viewport-box" class="absolute border border-gold/60 bg-gold/5 pointer-events-none transition-all duration-75"></div>
+          </div>
+        </div>
+
+        <!-- THE TREE DRAGGABLE AND ZOOMABLE CANVAS -->
+        <div id="tree-canvas" class="absolute inset-0 origin-center transition-transform duration-75 ease-out" style="transform: translate3d(0px, 0px, 0) scale(1);">
+
+          <!-- SVG CONNECTOR LINES LAYER (Behind members) -->
+          <svg id="tree-svg-layer" class="absolute inset-0 w-[5000px] h-[3000px] pointer-events-none" style="z-index: 1;">
+            <defs>
+              <linearGradient id="gold-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#D4AF37" stop-opacity="0.35" />
+                <stop offset="100%" stop-color="#10B981" stop-opacity="0.35" />
+              </linearGradient>
+            </defs>
+            <!-- Generated connection lines go here -->
+          </svg>
+
+          <!-- CARDS LAYER -->
+          <div id="tree-cards-layer" class="absolute inset-0 w-[5000px] h-[3000px]" style="z-index: 2;">
+            <!-- Rendered family tree node cards populated via JS -->
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- QUICK VIEW DETAIL SIDE-DRAWER -->
+  <div id="quick-view-drawer" class="fixed right-0 top-0 h-full w-96 bg-slate-950 border-l border-white/10 z-50 translate-x-full transition-transform duration-300 shadow-2xl p-6 flex flex-col justify-between overflow-y-auto hidden">
+    <!-- Trigger container filled via js/tree.js -->
+  </div>
+
+  <!-- MOCK EDITING MODAL LAYER (Add Parent, Child, Spouse, Edit) -->
+  <div id="tree-edit-modal" class="fixed inset-0 z-[100] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 transition-opacity opacity-0 pointer-events-none">
+    <!-- Populated via js/tree.js dynamic forms -->
+  </div>
+
+  <!-- Reusable navigation launcher modules -->
+  <script type="module" src="js/navigation.js"></script>
+  <script type="module" src="js/tree.js"></script>
+</body>
+</html>
