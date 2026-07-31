@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Members Directory | Lawal.org Portal</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Global Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gold: { DEFAULT: '#D4AF37', hover: '#be992e', light: '#fdfbf2' },
+            emerald: { DEFAULT: '#10B981', hover: '#059669' },
+            slate: { 950: '#0B0F17' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-200 selection:bg-gold/30 selection:text-gold flex min-h-screen">
+
+  <!-- Shared Sidebar Container -->
+  <div id="sidebar-container"></div>
+
+  <!-- Main Content Layout wrapper -->
+  <div class="flex-grow flex flex-col min-w-0 lg:pl-64">
+    <!-- Shared Header Container -->
+    <div id="header-container"></div>
+
+    <!-- Main Workspace directory workspace -->
+    <main class="flex-grow p-6 md:p-8 flex flex-col gap-6 max-w-7xl mx-auto w-full">
+
+      <!-- Headline banner -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+        <div class="flex flex-col gap-1">
+          <h1 class="font-serif text-2xl md:text-3xl font-bold text-white tracking-wide">Family Directory</h1>
+          <p class="text-xs text-slate-400 font-light">Explore, search, and filter verified profiles across the Lawal lineages.</p>
+        </div>
+        <div class="text-xs text-slate-400">
+          Showing <strong class="text-gold" id="members-count">--</strong> total members
+        </div>
+      </div>
+
+      <!-- MAIN CONTENT COLUMN: FILTERS PANEL + RESULTS GRID -->
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+
+        <!-- Collapsible Filters Column (1 col) -->
+        <aside class="flex flex-col gap-6 lg:border-r lg:border-white/5 lg:pr-6">
+          <div class="flex items-center justify-between pb-2 border-b border-white/5">
+            <span class="text-xs font-serif font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+              <i class="fa-solid fa-filter text-gold text-[10px]"></i> Refine Directory
+            </span>
+            <button id="reset-filters-btn" class="text-[10px] text-slate-500 hover:text-white transition-colors font-semibold uppercase">Reset</button>
+          </div>
+
+          <!-- Filter Group 1: Search Directory -->
+          <div class="flex flex-col gap-2">
+            <label class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Active Directory Search</label>
+            <div class="relative">
+              <input
+                type="text"
+                id="directory-search-input"
+                placeholder="Name, nickname, hobby..."
+                class="w-full h-9 pl-8 pr-4 bg-slate-900 border border-white/10 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-gold transition-all"
+              />
+              <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]">
+                <i class="fa-solid fa-magnifying-glass"></i>
+              </span>
+            </div>
+          </div>
+
+          <!-- Filter Group 2: Status -->
+          <div class="flex flex-col gap-2">
+            <label class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Vitals Status</label>
+            <select id="filter-status" class="w-full h-9 px-2 bg-slate-900 border border-white/10 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-gold">
+              <option value="">All Statuses</option>
+              <option value="Living">Living</option>
+              <option value="Deceased">Deceased</option>
+            </select>
+          </div>
+
+          <!-- Filter Group 3: Generation -->
+          <div class="flex flex-col gap-2">
+            <label class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Lineage Generation</label>
+            <select id="filter-generation" class="w-full h-9 px-2 bg-slate-900 border border-white/10 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-gold">
+              <option value="">All Generations</option>
+              <option value="1">Generation 1 (Patriarchs)</option>
+              <option value="2">Generation 2 (Parents)</option>
+              <option value="3">Generation 3 (Grandchildren)</option>
+            </select>
+          </div>
+
+          <!-- Filter Group 4: Country / Territory -->
+          <div class="flex flex-col gap-2">
+            <label class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Place of Birth / Res</label>
+            <select id="filter-country" class="w-full h-9 px-2 bg-slate-900 border border-white/10 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-gold">
+              <option value="">All Locations</option>
+              <option value="Lagos">Lagos, Nigeria</option>
+              <option value="London">London, UK</option>
+              <option value="Abuja">Abuja, Nigeria</option>
+              <option value="Abeokuta">Abeokuta, Nigeria</option>
+              <option value="Ibadan">Ibadan, Nigeria</option>
+            </select>
+          </div>
+
+          <!-- Filter Group 5: Surnames -->
+          <div class="flex flex-col gap-2">
+            <label class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Branch Surname</label>
+            <select id="filter-surname" class="w-full h-9 px-2 bg-slate-900 border border-white/10 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-gold">
+              <option value="">All Surnames</option>
+              <option value="Lawal">Lawal</option>
+              <option value="Alabi">Alabi</option>
+            </select>
+          </div>
+
+          <!-- Filter Group 6: Occupation industry -->
+          <div class="flex flex-col gap-2">
+            <label class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Career Field</label>
+            <select id="filter-occupation" class="w-full h-9 px-2 bg-slate-900 border border-white/10 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-gold">
+              <option value="">All Occupations</option>
+              <option value="Engineer">Civil Engineer / Architecture</option>
+              <option value="surgeon">Neurosurgery / Dental</option>
+              <option value="Lawyer">Law Advocate (SAN)</option>
+              <option value="Military">Military service</option>
+              <option value="Tech">Software & AI Tech</option>
+              <option value="Finance">Venture Capital / Investment</option>
+            </select>
+          </div>
+
+          <!-- Filter Group 7: Military status checkbox -->
+          <div class="flex items-center gap-2 py-1 select-none">
+            <input
+              type="checkbox"
+              id="filter-military"
+              class="rounded border-white/10 bg-slate-950 text-gold focus:ring-gold/30 h-4 w-4"
+            />
+            <label for="filter-military" class="text-xs text-slate-400 font-light cursor-pointer">Has Military Service</label>
+          </div>
+        </aside>
+
+        <!-- Results Directory Grid Column (3 cols) -->
+        <div class="lg:col-span-3 flex flex-col gap-6">
+
+          <!-- Grid wrapper container -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6" id="members-grid">
+            <!-- Dynamically populated via js/members.js -->
+          </div>
+
+          <!-- Empty directory state placeholder -->
+          <div id="empty-state" class="hidden text-center py-16 flex flex-col items-center gap-3">
+            <div class="w-16 h-16 rounded-full bg-gold/5 border border-gold/10 flex items-center justify-center text-xl text-gold/45">
+              <i class="fa-solid fa-circle-question"></i>
+            </div>
+            <h3 class="font-serif text-lg text-white">No Relatives Matched</h3>
+            <p class="text-xs text-slate-500 max-w-sm">No family profiles match your current search constraints or filters. Please refine filters above.</p>
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Reusable navigation launcher modules -->
+  <script type="module" src="js/navigation.js"></script>
+  <script type="module" src="js/members.js"></script>
+</body>
+</html>

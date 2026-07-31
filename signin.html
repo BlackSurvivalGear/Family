@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In | Lawal.org Private Portal</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Global Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gold: { DEFAULT: '#D4AF37', hover: '#be992e' },
+            emerald: { DEFAULT: '#10B981', hover: '#059669' },
+            slate: { 950: '#0B0F17' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-200 selection:bg-gold/30 selection:text-gold flex flex-col min-h-screen">
+
+  <!-- Header / Navigation -->
+  <header class="w-full bg-transparent border-b border-white/5 py-5 px-6">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-3">
+        <span class="font-serif text-xl font-bold tracking-widest text-gold">LAWAL<span class="text-xs tracking-normal text-slate-400 font-sans ml-1">.ORG</span></span>
+      </a>
+      <a href="index.html" class="text-xs text-slate-400 hover:text-white transition-colors flex items-center gap-2">
+        <i class="fa-solid fa-arrow-left"></i> Back to Homepage
+      </a>
+    </div>
+  </header>
+
+  <!-- Login Main Section -->
+  <main class="flex-grow flex items-center justify-center py-16 px-6 relative overflow-hidden">
+    <!-- Subtle glow behind the card -->
+    <div class="absolute w-[450px] h-[450px] bg-gold/5 rounded-full blur-[100px] pointer-events-none"></div>
+
+    <div class="w-full max-w-md relative z-10">
+      <!-- Glassmorphic Card -->
+      <div class="glass-panel border border-white/10 p-8 rounded-3xl shadow-2xl flex flex-col gap-6 animate-fade-in">
+
+        <div class="text-center">
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gold/10 text-gold mb-3">
+            <i class="fa-solid fa-lock text-xl"></i>
+          </div>
+          <h2 class="text-2xl font-serif font-bold text-white tracking-wide">Family Access</h2>
+          <p class="text-xs text-slate-400 font-light mt-1">Please authenticate to enter the private generation directory.</p>
+        </div>
+
+        <div id="alert-box" class="hidden text-xs py-2.5 px-3 rounded-lg border"></div>
+
+        <!-- Form ready for future Firebase Connection -->
+        <form id="signin-form" class="flex flex-col gap-4">
+          <div class="flex flex-col gap-1.5">
+            <label for="email" class="text-xs font-semibold tracking-wider text-slate-300 uppercase">Email Address</label>
+            <div class="relative">
+              <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs">
+                <i class="fa-solid fa-envelope"></i>
+              </span>
+              <input
+                type="email"
+                id="email"
+                required
+                placeholder="relative@lawal.org"
+                class="w-full h-11 pl-10 pr-4 rounded-xl bg-slate-900/80 border border-white/10 text-sm placeholder:text-slate-500 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all text-slate-200"
+              />
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-1.5">
+            <div class="flex justify-between items-center">
+              <label for="password" class="text-xs font-semibold tracking-wider text-slate-300 uppercase">Security Code</label>
+              <a href="forgot-password.html" class="text-[11px] text-gold hover:underline">Forgot password?</a>
+            </div>
+            <div class="relative">
+              <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs">
+                <i class="fa-solid fa-key"></i>
+              </span>
+              <input
+                type="password"
+                id="password"
+                required
+                placeholder="••••••••••••"
+                class="w-full h-11 pl-10 pr-10 rounded-xl bg-slate-900/80 border border-white/10 text-sm placeholder:text-slate-500 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all text-slate-200"
+              />
+              <button
+                type="button"
+                id="toggle-password"
+                class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors text-xs"
+              >
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between py-1">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                id="remember"
+                class="rounded border-white/10 bg-slate-950 text-gold focus:ring-gold/30 h-4 w-4"
+              />
+              <span class="text-xs text-slate-400 font-light select-none">Remember this session</span>
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            class="w-full h-11 bg-gradient-to-r from-gold to-gold-hover hover:scale-[1.01] active:scale-100 text-slate-950 font-semibold tracking-wider uppercase text-xs rounded-xl transition-all shadow-md shadow-gold/10"
+          >
+            Authenticate <i class="fa-solid fa-shield-halved ml-1"></i>
+          </button>
+        </form>
+
+        <div class="text-center text-xs text-slate-400 border-t border-white/5 pt-4">
+          Don't have an approved account? <a href="register.html" class="text-gold font-medium hover:underline">Register here</a>
+        </div>
+
+        <!-- Direct selection helper for quick testing without typing -->
+        <div class="bg-gold/5 border border-gold/10 rounded-xl p-4 flex flex-col gap-2.5">
+          <span class="text-[10px] uppercase tracking-widest font-bold text-gold flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-info"></i> Developer & Demo Quick Access
+          </span>
+          <p class="text-[11px] text-slate-400 font-light leading-snug">
+            Select a seeded member below to automatically log in.
+          </p>
+          <select id="quick-demo-select" class="w-full h-9 px-2 bg-slate-900 border border-gold/20 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-gold">
+            <option value="" disabled selected>-- Choose Profile --</option>
+            <option value="fatima-lawal">Alhaja Fatima Lawal (Matriarch)</option>
+            <option value="tunde-lawal">Dr. Tunde Lawal (Senior Son - UK)</option>
+            <option value="funmi-alabi">Funmilayo Alabi SAN (SAN Daughter - Lagos)</option>
+            <option value="kunle-lawal">Major Kunle Lawal (Army Son - Abuja)</option>
+            <option value="amina-lawal">Amina Lawal (Software Engineer - Gen 3)</option>
+          </select>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Loading overlay screen -->
+  <div id="loading-screen" class="fixed inset-0 bg-slate-950 z-[100] flex flex-col items-center justify-center gap-4 transition-opacity duration-300 pointer-events-none opacity-0">
+    <div class="relative w-16 h-16 flex items-center justify-center">
+      <div class="absolute inset-0 border-2 border-gold/10 rounded-full"></div>
+      <div class="absolute inset-0 border-t-2 border-gold rounded-full animate-spin"></div>
+      <i class="fa-solid fa-lock text-gold text-lg animate-pulse"></i>
+    </div>
+    <div class="flex flex-col items-center gap-1 text-center">
+      <span class="font-serif text-lg text-white font-medium tracking-wide">Securing Portal Access</span>
+      <span class="text-xs text-slate-500 font-light" id="loading-msg">Connecting to Firebase-ready database...</span>
+    </div>
+  </div>
+
+  <footer class="bg-slate-950 border-t border-white/5 py-4 text-center text-xs text-slate-500">
+    &copy; 2024 Lawal.org. Secured Private Environment.
+  </footer>
+
+  <script type="module">
+    import { DB } from './js/db.js';
+    DB.init();
+
+    // Elements
+    const form = document.getElementById('signin-form');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const alertBox = document.getElementById('alert-box');
+    const togglePassword = document.getElementById('toggle-password');
+    const quickDemoSelect = document.getElementById('quick-demo-select');
+    const loadingScreen = document.getElementById('loading-screen');
+    const loadingMsg = document.getElementById('loading-msg');
+
+    // Toggle Password Visibility
+    togglePassword.addEventListener('click', () => {
+      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      passwordInput.setAttribute('type', type);
+      togglePassword.innerHTML = type === 'password' ? '<i class="fa-solid fa-eye"></i>' : '<i class="fa-solid fa-eye-slash"></i>';
+    });
+
+    // Helper to run loading screen and redirect
+    function processLoginRedirect(userObject) {
+      localStorage.setItem('lawal_current_user', JSON.stringify(userObject));
+
+      // Reveal loading screen
+      loadingScreen.classList.remove('pointer-events-none', 'opacity-0');
+      loadingScreen.classList.add('opacity-100');
+
+      setTimeout(() => {
+        loadingMsg.textContent = "Decrypting relationship nodes...";
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 1200);
+      }, 1000);
+    }
+
+    // Submit Action
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const email = emailInput.value.trim().toLowerCase();
+      const password = passwordInput.value;
+
+      // Mock user database resolution or general simulation
+      const members = DB.getMembers();
+      // Look for a member with matching email, or general fallback
+      let matched = members.find(m => `${m.id}@lawal.org` === email || `${m.firstName.toLowerCase()}@lawal.org` === email);
+
+      if (!matched && email === "admin@lawal.org" && password === "admin123") {
+        matched = members.find(m => m.id === "tunde-lawal");
+      }
+
+      if (matched || (email && password.length >= 6)) {
+        const user = matched || {
+          id: "custom-user",
+          firstName: "Honored",
+          lastName: "Relative",
+          gender: "Male",
+          avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80",
+          role: "Family Relative",
+          generation: 3
+        };
+        processLoginRedirect(user);
+      } else {
+        alertBox.className = "text-xs py-2.5 px-3 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400";
+        alertBox.textContent = "Invalid security code or unapproved relative email.";
+        alertBox.classList.remove('hidden');
+      }
+    });
+
+    // Quick Demo selection trigger
+    quickDemoSelect.addEventListener('change', (e) => {
+      const memberId = e.target.value;
+      if (!memberId) return;
+
+      const member = DB.getMember(memberId);
+      if (member) {
+        emailInput.value = `${member.id}@lawal.org`;
+        passwordInput.value = "secret123";
+        processLoginRedirect(member);
+      }
+    });
+  </script>
+</body>
+</html>
