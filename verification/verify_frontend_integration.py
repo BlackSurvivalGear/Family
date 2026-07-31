@@ -10,6 +10,11 @@ def run_cuj(page):
 
     print("Registering a new test user to establish a real Firebase session...")
     page.goto("http://localhost:8000/register.html")
+    page.evaluate("""() => {
+        localStorage.setItem("firebase_force_simulation", "true");
+        localStorage.setItem("cloudinary_force_simulation", "true");
+    }""")
+    page.reload()
     page.wait_for_timeout(1000)
     page.fill("#firstName", "Admin")
     page.fill("#lastName", "Lawal")
