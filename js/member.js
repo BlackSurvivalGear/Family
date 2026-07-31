@@ -44,6 +44,9 @@ export class MemberProfile {
         window.location.href = `tree.html?id=${member.id}&edit=true`;
       });
     }
+
+    // Bind collapsible accordions
+    this.bindAccordions();
   }
 
   static renderBasicDetails(member) {
@@ -63,6 +66,16 @@ export class MemberProfile {
       } else {
         const deathYear = member.deathDate ? member.deathDate.substring(0, 4) : 'N/A';
         statusEl.innerHTML = `<span class="text-slate-400">Deceased (Passed away ${deathYear})</span>`;
+      }
+    }
+
+    // Adopted Badge container
+    const adoptContainer = document.getElementById('adopt-badge-container');
+    if (adoptContainer) {
+      if (member.relationshipType === 'Adopted') {
+        adoptContainer.innerHTML = `<span class="text-[10px] tracking-wider uppercase bg-sky-500/15 border border-sky-500/25 text-sky-400 px-2 py-0.5 rounded-full font-bold">Adopted</span>`;
+      } else {
+        adoptContainer.innerHTML = '';
       }
     }
   }
@@ -102,15 +115,29 @@ export class MemberProfile {
     const allMembers = DB.getMembers();
     const links = [];
 
-    // 1. Spouses
-    if (member.spouseId) {
-      const spouse = allMembers.find(m => m.id === member.spouseId);
-      if (spouse) {
-        links.push({ rel: 'Spouse', name: `${spouse.firstName} ${spouse.lastName}`, id: spouse.id, icon: 'fa-ring text-gold' });
-      }
+    // 1. Spouses (including multi-spouses)
+    const spouseIds = new Set();
+    if (member.spouseId) spouseIds.add(member.spouseId);
+    if (member.spouses) {
+      member.spouses.forEach(sp => spouseIds.add(sp.id));
     }
 
-    // 2. Parents
+    spouseIds.forEach(spId => {
+      const spouse = allMembers.find(m => m.id === spId);
+      if (spouse) {
+        // Find marriage type label if stored
+        let spouseLabel = "Spouse";
+        if (member.spouses) {
+          const matchSpObj = member.spouses.find(sp => sp.id === spId);
+          if (matchSpObj && matchSpObj.type === 'former') {
+            spouseLabel = "Former Spouse";
+          }
+        }
+        links.push({ rel: spouseLabel, name: `${spouse.firstName} ${spouse.lastName}`, id: spouse.id, icon: 'fa-ring text-gold' });
+      }
+    });
+
+    // 2. Parents (and step parents/adoptive if specified)
     if (member.fatherId) {
       const father = allMembers.find(m => m.id === member.fatherId);
       if (father) {
@@ -127,17 +154,24 @@ export class MemberProfile {
     // 3. Children
     const children = allMembers.filter(m => m.fatherId === member.id || m.motherId === member.id);
     children.forEach(c => {
-      links.push({ rel: 'Child', name: `${c.firstName} ${c.lastName}`, id: c.id, icon: 'fa-child-reaching text-emerald' });
+      let relLabel = "Child";
+      if (c.relationshipType === 'Adopted') {
+        relLabel = "Adopted Child";
+      }
+      links.push({ rel: relLabel, name: `${c.firstName} ${c.lastName}`, id: c.id, icon: 'fa-child-reaching text-emerald' });
     });
 
-    // 4. Siblings
+    // 4. Siblings (Half siblings vs full siblings check)
     if (member.fatherId || member.motherId) {
       const siblings = allMembers.filter(m =>
         m.id !== member.id &&
         ((member.fatherId && m.fatherId === member.fatherId) || (member.motherId && m.motherId === member.motherId))
       );
       siblings.forEach(s => {
-        links.push({ rel: 'Sibling', name: `${s.firstName} ${s.lastName}`, id: s.id, icon: 'fa-user-group text-slate-400' });
+        // Check if full sibling or half sibling
+        const isFullSibling = (member.fatherId && s.fatherId === member.fatherId) && (member.motherId && s.motherId === member.motherId);
+        const relLabel = isFullSibling ? 'Sibling' : 'Half-Sibling';
+        links.push({ rel: relLabel, name: `${s.firstName} ${s.lastName}`, id: s.id, icon: 'fa-user-group text-slate-400' });
       });
     }
 
@@ -210,20 +244,66 @@ export class MemberProfile {
 
     container.innerHTML = finalDocs.map(item => {
       return `
-        <div class="p-3.5 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between hover:border-gold/20 hover:bg-slate-900 transition-all text-left">
+        <div class="p-3.5 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between hover:border-gold/20 hover:bg-slate-900 transition-all text-left w-full">
           <div class="flex items-center gap-3 min-w-0">
             <i class="fa-solid ${item.icon} text-sm shrink-0"></i>
             <div class="flex flex-col min-w-0">
-              <span class="text-xs font-semibold text-white truncate">${item.title}</span>
+              <span class="text-xs font-semibold text-white truncate" title="${item.title}">${item.title}</span>
               <span class="text-[9px] text-slate-500 mt-0.5">${item.type} • ${item.size}</span>
             </div>
           </div>
-          <a href="documents.html" class="w-7 h-7 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-lg flex items-center justify-center transition-colors">
+          <a href="documents.html" class="w-7 h-7 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-lg flex items-center justify-center transition-colors shrink-0">
             <i class="fa-solid fa-download text-[10px]"></i>
           </a>
         </div>
       `;
     }).join('');
+  }
+
+  // Interactive Premium Accordion functionality
+  static bindAccordions() {
+    const headers = document.querySelectorAll('.accordion-header');
+    headers.forEach(header => {
+      header.addEventListener('click', () => {
+        const targetId = header.getAttribute('data-target');
+        const content = document.getElementById(targetId);
+        const icon = header.querySelector('.fa-chevron-up, .fa-chevron-down');
+
+        if (!content) return;
+
+        // Toggle collapsible view
+        const isHidden = content.style.maxHeight === '0px';
+
+        if (isHidden) {
+          content.style.maxHeight = `${content.scrollHeight + 40}px`;
+          content.style.opacity = '1.0';
+          if (icon) {
+            icon.classList.remove('fa-chevron-down');
+            icon.classList.add('fa-chevron-up');
+          }
+        } else {
+          content.style.maxHeight = '0px';
+          content.style.opacity = '0';
+          if (icon) {
+            icon.classList.remove('fa-chevron-up');
+            icon.classList.add('fa-chevron-down');
+          }
+        }
+      });
+    });
+
+    // Initialize all as open, by calculating height initially
+    setTimeout(() => {
+      headers.forEach(header => {
+        const targetId = header.getAttribute('data-target');
+        const content = document.getElementById(targetId);
+        if (content) {
+          content.style.maxHeight = `${content.scrollHeight + 40}px`;
+          content.style.opacity = '1.0';
+          content.style.transition = 'max-height 0.3s ease-out, opacity 0.3s ease-out';
+        }
+      });
+    }, 100);
   }
 
   static calculateAge(birthDate) {

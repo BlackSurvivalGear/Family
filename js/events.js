@@ -3,109 +3,177 @@ import { DB } from './db.js';
 export class EventsCalendar {
   static init() {
     DB.init();
-    this.renderCalendar();
-    this.renderOccurrences();
 
-    // Bind Add Event simulation trigger
-    const addBtn = document.getElementById('add-event-btn');
-    if (addBtn) {
-      addBtn.addEventListener('click', () => {
-        const title = prompt("Enter Event Title:", "Graduation Dinner - Amina");
-        const date = prompt("Enter Event Date (YYYY-MM-DD):", "2024-07-15");
-        const category = prompt("Enter Category (Birthdays, Anniversaries, Reunions, Meetings):", "Meetings");
-        const description = prompt("Enter Description:", "Celebrating Amina's educational achievements in London.");
+    // Default to November 2024 for demonstration matching our seeded birthday
+    this.currentDate = new Date(2024, 10, 1); // Month 10 represents November (0-indexed)
 
-        if (title && date && category && description) {
-          DB.addEvent({
-            title,
-            date,
-            category,
-            description,
-            time: "18:30"
-          });
-          this.renderCalendar();
-          this.renderOccurrences();
-        }
-      });
-    }
+    // Bind DOM
+    this.monthYearTitle = document.getElementById('calendar-month-year');
+    this.daysGrid = document.getElementById('calendar-days-grid');
+    this.agendaList = document.getElementById('agenda-list');
+
+    this.prevBtn = document.getElementById('prev-month-btn');
+    this.nextBtn = document.getElementById('next-month-btn');
+    this.todayBtn = document.getElementById('today-btn');
+    this.addEventBtn = document.getElementById('add-event-trigger-btn');
+
+    this.render();
+    this.bindControls();
   }
 
-  static renderCalendar() {
-    const block = document.getElementById('calendar-grid-block');
-    if (!block) return;
+  static render() {
+    const year = this.currentDate.getFullYear();
+    const month = this.currentDate.getMonth();
 
-    const events = DB.getEvents();
-
-    // Render a high-quality summary representation of months containing events
-    const months = [
-      { name: "January", index: "01" },
-      { name: "May", index: "05" },
-      { name: "September", index: "09" },
-      { name: "October", index: "10" },
-      { name: "November", index: "11" },
-      { name: "December", index: "12" }
+    // Set Month Year Title
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
     ];
+    if (this.monthYearTitle) {
+      this.monthYearTitle.textContent = `${monthNames[month]} ${year}`;
+    }
 
-    block.innerHTML = `
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        ${months.map(m => {
-          // Find events in this month
-          const monthEvents = events.filter(e => e.date.substring(5, 7) === m.index);
-          const dotsHtml = monthEvents.map(me => {
-            let color = "bg-gold";
-            if (me.category === "Birthdays") color = "bg-blue-500";
-            if (me.category === "Reunions") color = "bg-emerald";
-            if (me.category === "Anniversaries") color = "bg-pink-500";
-            return `
-              <div class="flex gap-2 items-center text-[10px] text-slate-300 border-b border-white/5 py-1 last:border-none">
-                <span class="w-1.5 h-1.5 rounded-full ${color} shrink-0"></span>
-                <span class="truncate font-light" title="${me.title}">${me.title} (${me.date.substring(8)})</span>
-              </div>
-            `;
-          }).join('');
-
-          return `
-            <div class="bg-slate-900 border border-white/5 p-4 rounded-xl flex flex-col gap-3">
-              <span class="text-xs font-serif font-bold text-white tracking-wide border-b border-white/5 pb-2 block">${m.name} 2024</span>
-              <div class="flex flex-col gap-1.5">
-                ${dotsHtml || '<span class="text-[10px] text-slate-600 italic">No scheduled occurrences</span>'}
-              </div>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `;
+    this.renderDays(year, month);
+    this.renderAgenda();
   }
 
-  static renderOccurrences() {
-    const feed = document.getElementById('calendar-occurrences-feed');
-    if (!feed) return;
+  static renderDays(year, month) {
+    if (!this.daysGrid) return;
+
+    this.daysGrid.innerHTML = '';
+
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    const prevLastDay = new Date(year, month, 0).getDate();
 
     const events = DB.getEvents();
+
+    let daysHtml = '';
+
+    // Previous month empty buffer spaces
+    for (let i = firstDayIndex; i > 0; i--) {
+      const prevNum = prevLastDay - i + 1;
+      daysHtml += `
+        <div class="h-20 p-1.5 rounded-xl bg-slate-900/10 text-slate-700 text-[10px] text-right font-light pointer-events-none">
+          ${prevNum}
+        </div>
+      `;
+    }
+
+    // Current month active days
+    const today = new Date();
+    for (let day = 1; day <= lastDay; day++) {
+      const formattedDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const dayEvents = events.filter(e => e.date === formattedDate);
+
+      const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
+      const todayClass = isToday ? 'border-gold bg-gold/5' : 'border-white/5 bg-slate-900/40 hover:bg-white/5';
+
+      let eventsHtml = '';
+      dayEvents.forEach(e => {
+        let categoryColor = 'bg-gold/15 text-gold border-gold/20';
+        if (e.category === 'Birthdays') categoryColor = 'bg-emerald/15 text-emerald border-emerald/20';
+        if (e.category === 'Anniversaries') categoryColor = 'bg-pink-500/15 text-pink-400 border-pink-500/20';
+
+        eventsHtml += `
+          <div class="text-[8px] truncate px-1 py-0.5 rounded border ${categoryColor} mt-1 font-semibold" title="${e.title}">
+            ${e.title}
+          </div>
+        `;
+      });
+
+      daysHtml += `
+        <div class="h-20 p-2 rounded-xl border flex flex-col justify-between text-right cursor-pointer transition-colors ${todayClass}">
+          <span class="text-[10px] font-bold text-slate-400 block">${day}</span>
+          <div class="flex flex-col gap-0.5 w-full mt-1 overflow-y-auto">
+            ${eventsHtml}
+          </div>
+        </div>
+      `;
+    }
+
+    this.daysGrid.innerHTML = daysHtml;
+  }
+
+  static renderAgenda() {
+    if (!this.agendaList) return;
+
+    const events = DB.getEvents();
+    // Sort upcoming first
+    events.sort((a,b) => new Date(a.date) - new Date(b.date));
+
     if (events.length === 0) {
-      feed.innerHTML = '<span class="text-xs text-slate-500 italic">No events mapped.</span>';
+      this.agendaList.innerHTML = '<span class="text-xs text-slate-500 italic">No scheduled events listed.</span>';
       return;
     }
 
-    feed.innerHTML = events.slice(0, 5).map(evt => {
-      let icon = "fa-cake-candles text-blue-400 bg-blue-500/10";
-      if (evt.category === "Reunions") icon = "fa-handshake text-emerald bg-emerald/10";
-      if (evt.category === "Anniversaries") icon = "fa-ring text-pink-500 bg-pink-500/10";
-      if (evt.category === "Meetings") icon = "fa-bullhorn text-gold bg-gold/10";
+    this.agendaList.innerHTML = events.map(evt => {
+      const isBirthday = evt.category === 'Birthdays';
+      const isAnniversary = evt.category === 'Anniversaries';
+      let icon = 'fa-calendar text-gold';
+      if (isBirthday) icon = 'fa-cake-candles text-emerald';
+      if (isAnniversary) icon = 'fa-ring text-pink-400';
 
       return `
-        <div class="flex gap-3 items-start border-b border-white/5 pb-3 last:border-none text-left">
-          <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${icon} text-xs">
-            <i class="fa-solid"></i>
-          </div>
-          <div class="flex flex-col min-w-0">
-            <span class="text-xs font-semibold text-white truncate">${evt.title}</span>
-            <span class="text-[10px] text-slate-400 mt-0.5 leading-relaxed truncate" title="${evt.description}">${evt.description}</span>
-            <span class="text-[9px] text-slate-500 font-light mt-1">${evt.date} • ${evt.time || 'All Day'}</span>
+        <div class="p-3.5 rounded-xl bg-white/5 border border-white/5 hover:border-gold/25 transition-all text-left">
+          <div class="flex gap-3 items-start">
+            <div class="w-8 h-8 rounded-lg bg-slate-900 border border-white/5 flex items-center justify-center shrink-0">
+              <i class="fa-solid ${icon} text-sm"></i>
+            </div>
+            <div class="flex flex-col min-w-0">
+              <span class="text-xs font-semibold text-white truncate" title="${evt.title}">${evt.title}</span>
+              <span class="text-[10px] text-slate-400 font-light mt-0.5">${evt.date} • ${evt.time || 'All day'}</span>
+              <p class="text-[10px] text-slate-500 mt-1 leading-normal font-light truncate" title="${evt.description}">${evt.description}</p>
+            </div>
           </div>
         </div>
       `;
     }).join('');
+  }
+
+  static bindControls() {
+    if (this.prevBtn) {
+      this.prevBtn.addEventListener('click', () => {
+        this.currentDate.setMonth(this.currentDate.getMonth() - 1);
+        this.render();
+      });
+    }
+
+    if (this.nextBtn) {
+      this.nextBtn.addEventListener('click', () => {
+        this.currentDate.setMonth(this.currentDate.getMonth() + 1);
+        this.render();
+      });
+    }
+
+    if (this.todayBtn) {
+      this.todayBtn.addEventListener('click', () => {
+        this.currentDate = new Date();
+        this.render();
+      });
+    }
+
+    if (this.addEventBtn) {
+      this.addEventBtn.addEventListener('click', () => {
+        const title = prompt("Enter Event Title:", "Family Reunion Lagos");
+        const category = prompt("Enter Category (Birthdays, Anniversaries, Reunions, Meetings):", "Reunions");
+        const date = prompt("Enter Date (YYYY-MM-DD):", "2024-11-20");
+        const time = prompt("Enter Time (HH:MM):", "12:00");
+        const description = prompt("Enter description:", "Gathering of all descendants.");
+
+        if (title && category && date && description) {
+          DB.addEvent({
+            title,
+            category,
+            date,
+            time,
+            description
+          });
+          this.render();
+        }
+      });
+    }
   }
 }
 

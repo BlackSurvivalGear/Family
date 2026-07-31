@@ -2,6 +2,7 @@
  * Lawal.org Mock Database & Persistence Engine
  * Uses localStorage to persist data for a complete serverless demonstration.
  * Seeding a realistic, premium, three-generational Yoruba-Nigerian family.
+ * Updated for Version 2: Extensive multi-spouse and complex relationships.
  */
 
 const SEED_MEMBERS = [
@@ -17,10 +18,15 @@ const SEED_MEMBERS = [
     deathPlace: "Lagos, Nigeria",
     status: "Deceased", // Living / Deceased
     nationality: "Nigerian",
+    countryFlag: "🇳🇬",
     biography: "Alhaji Kolawole Lawal was the esteemed patriarch of the Lawal dynasty. Born in Abeokuta in 1940, he excelled in academic pursuits, studying Civil Engineering at the University of Ibadan before obtaining his master's degree from Imperial College London in 1965. As a pioneer civil engineer, he oversaw major infrastructural developments across Western Nigeria in the 70s and 80s. A dedicated community leader and philanthropist, his values of education, honor, and unity continue to guide generations of the Lawal family.",
     fatherId: null,
     motherId: null,
-    spouseId: "fatima-lawal",
+    spouseId: "fatima-lawal", // Default fallback/primary spouse
+    spouses: [
+      { id: "fatima-lawal", type: "current", label: "Alhaja Fatima (Current Spouse)" },
+      { id: "layo-egbado", type: "former", label: "Layo Egbado (Former Spouse)" }
+    ],
     generation: 1,
     role: "Family Patriarch / Founder",
     education: {
@@ -46,6 +52,7 @@ const SEED_MEMBERS = [
     timeline: [
       { year: 1940, title: "Born in Abeokuta", description: "First son of the Lawal merchant household." },
       { year: 1958, title: "University Admission", description: "Enrolled in University of Ibadan on a Western Nigeria Merit Scholarship." },
+      { year: 1959, title: "First Marriage to Layo", description: "Nuptials with Layo Egbado in Abeokuta, which was later amicably dissolved." },
       { year: 1963, title: "Marriage to Fatima", description: "Married Alhaja Fatima in a beautiful traditional ceremony in Lagos." },
       { year: 1965, title: "Imperial College", description: "Completed Master's degree in Structural Engineering in London." },
       { year: 1989, title: "Launched Lawal & Partners Ltd", description: "Founded his own consulting and civil engineering enterprise." },
@@ -63,10 +70,14 @@ const SEED_MEMBERS = [
     deathDate: null,
     status: "Living",
     nationality: "Nigerian",
+    countryFlag: "🇳🇬",
     biography: "Alhaja Fatima Lawal (née Balogun) is the beloved matriarch of our family. Born in Lagos Island to an aristocratic trading family, she studied business administration in Dublin. She established the Lawal Textile Trading House in Balogun Market, building it into one of Nigeria's premier textile businesses. Known for her extraordinary wisdom, culinary skills, and dedication to charity, Mama Lagos remains the spiritual and physical anchor of the family, providing guidance and warmth from her residence in Ikoyi, Lagos.",
     fatherId: null,
     motherId: null,
     spouseId: "kolawole-lawal",
+    spouses: [
+      { id: "kolawole-lawal", type: "current", label: "Alhaji Kolawole (Husband)" }
+    ],
     generation: 1,
     role: "Family Matriarch",
     education: {
@@ -97,6 +108,52 @@ const SEED_MEMBERS = [
     ]
   },
   {
+    id: "layo-egbado",
+    firstName: "Layo",
+    lastName: "Egbado",
+    nickname: "Iya Egba",
+    gender: "Female",
+    birthDate: "1942-02-15",
+    birthPlace: "Abeokuta, Ogun State, Nigeria",
+    deathDate: "2010-06-20",
+    deathPlace: "Abeokuta, Nigeria",
+    status: "Deceased",
+    nationality: "Nigerian",
+    countryFlag: "🇳🇬",
+    biography: "Layo Egbado was the first wife of Alhaji Kolawole Lawal. Born to a traditional lineage of Egba scholars, she spent her lifetime preserving local Abeokuta historical narratives, coordinating traditional adire dye production guilds, and running community welfare projects.",
+    fatherId: null,
+    motherId: null,
+    spouseId: "kolawole-lawal",
+    spouses: [
+      { id: "kolawole-lawal", type: "former", label: "Alhaji Kolawole (Former Husband)" }
+    ],
+    generation: 1,
+    role: "Former Partner (Abeokuta Branch)",
+    education: {
+      schools: "Egba Female Institute",
+      university: "Abeokuta Teachers' Training College"
+    },
+    military: { service: "None", history: "" },
+    career: {
+      occupation: "Adire Textile Guild Leader",
+      history: "Chief weaver and coordinator of the Abeokuta Artisanal Textile League (1975-2005)."
+    },
+    achievements: "Ogun State Cultural Heritage Ambassador Award (2002).",
+    languages: "Yoruba, English",
+    hobbies: "Indigo Dyeing, Folk Stories, Hand Loom Weaving",
+    sports: "Traditional Dancing",
+    books: "Yoruba Folk Tales",
+    music: "Apala music, Haruna Ishola",
+    travel: "Nigeria, Benin, Togo",
+    avatar: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=300&q=80",
+    timeline: [
+      { year: 1942, title: "Born in Abeokuta", description: "Daughter of Egba tribal historian Chief Egbado." },
+      { year: 1959, title: "Marriage to Kolawole", description: "Traditional wedding in Abeokuta." },
+      { year: 1961, title: "Birth of Biodun", description: "Welcomed her only son, Biodun Lawal." },
+      { year: 2010, title: "Passed Away", description: "Lying in state at Abeokuta ancestral home." }
+    ]
+  },
+  {
     id: "tunde-lawal",
     firstName: "Tunde",
     lastName: "Lawal",
@@ -107,10 +164,14 @@ const SEED_MEMBERS = [
     deathDate: null,
     status: "Living",
     nationality: "British/Nigerian",
+    countryFlag: "🇬🇧",
     biography: "Dr. Tunde Lawal is the first-born son of Kolawole and Fatima. An internationally renowned neurosurgeon, Tunde studied Medicine at the University of Oxford. He currently serves as a Senior Consultant Neurosurgeon at Great Ormond Street Hospital, London, and is a visiting professor at the College of Medicine, University of Ibadan. His research into pediatric neurovascular disorders has saved countless lives.",
     fatherId: "kolawole-lawal",
     motherId: "fatima-lawal",
     spouseId: "sade-lawal",
+    spouses: [
+      { id: "sade-lawal", type: "current", label: "Dr. Folasade (Spouse)" }
+    ],
     generation: 2,
     role: "Eldest Son / UK Branch Lead",
     education: {
@@ -151,10 +212,14 @@ const SEED_MEMBERS = [
     deathDate: null,
     status: "Living",
     nationality: "British/Nigerian",
+    countryFlag: "🇬🇧",
     biography: "Folasade Lawal (née Coker) is an accomplished orthodontist and researcher. Born in Ibadan, she trained at the University of London. She co-runs a luxury private dental practice in Harley Street, London, and runs a free dental health clinic for children in Makoko, Lagos, during her annual family visits. Folasade is a passionate champion of Afro-centric culinary fusion and interior design.",
     fatherId: null,
     motherId: null,
     spouseId: "tunde-lawal",
+    spouses: [
+      { id: "tunde-lawal", type: "current", label: "Dr. Tunde (Spouse)" }
+    ],
     generation: 2,
     role: "Spouse (London Branch)",
     education: {
@@ -184,6 +249,48 @@ const SEED_MEMBERS = [
     ]
   },
   {
+    id: "biodun-lawal",
+    firstName: "Abiodun",
+    lastName: "Lawal",
+    nickname: "Biodun",
+    gender: "Male",
+    birthDate: "1961-05-18",
+    birthPlace: "Abeokuta, Ogun State, Nigeria",
+    deathDate: null,
+    status: "Living",
+    nationality: "British/Nigerian",
+    countryFlag: "🇬🇧",
+    biography: "Abiodun 'Biodun' Lawal is the son of Alhaji Kolawole Lawal and his first wife, Layo Egbado. Biodun is a distinguished structural engineer who has worked in London's major design projects for three decades. He shares an incredible sibling bond with Tunde, Funmi, and Kunle, cementing the unified fabric of the expanded family.",
+    fatherId: "kolawole-lawal",
+    motherId: "layo-egbado",
+    spouseId: null,
+    spouses: [],
+    generation: 2,
+    role: "Senior Engineer (London Branch) / Half-Sibling",
+    education: {
+      schools: "Abeokuta Grammar School",
+      university: "University of Lagos (B.Sc Structural Eng.), University of Leeds (M.Sc Concrete Structures)"
+    },
+    military: { service: "None", history: "" },
+    career: {
+      occupation: "Principal Structural Designer",
+      history: "Senior structural specialist at Arup Group London (1990-2015), Consultant for Lagos Rail Transit project (2016-Present)."
+    },
+    achievements: "Fellow of the Institution of Structural Engineers (FIStructE) - 2008.",
+    languages: "English, Yoruba",
+    hobbies: "Golf, Architecture Photography, Vintage Jazz LPs",
+    sports: "Golf",
+    books: "The Pillars of the Earth by Ken Follett",
+    music: "Miles Davis, Ebenezer Obey, Fela Kuti",
+    travel: "UK, Nigeria, Canada, South Africa, Italy",
+    avatar: "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?auto=format&fit=crop&w=300&q=80",
+    timeline: [
+      { year: 1961, title: "Born in Abeokuta", description: "Son of Kolawole Lawal and Layo Egbado." },
+      { year: 1983, title: "Leeds University", description: "Left for the UK on scholarship to pursue Concrete Structural Engineering." },
+      { year: 1990, title: "Joined Arup London", description: "Participated in designing landmark transit terminals." }
+    ]
+  },
+  {
     id: "funmi-alabi",
     firstName: "Funmilayo",
     lastName: "Alabi",
@@ -194,10 +301,14 @@ const SEED_MEMBERS = [
     deathDate: null,
     status: "Living",
     nationality: "Nigerian",
+    countryFlag: "🇳🇬",
     biography: "Funmilayo Alabi (née Lawal) is the second child of Kolawole and Fatima. A brilliant Senior Advocate of Nigeria (SAN), Funmi holds a Master of Laws (LL.M.) from the London School of Economics. She is the Managing Partner of Alabi & Partners Law Firm, specializing in corporate finance, oil and gas, and intellectual property. She is a prominent advocate for women in law and serves on the board of several multinational corporations.",
     fatherId: "kolawole-lawal",
     motherId: "fatima-lawal",
     spouseId: "adebayo-alabi",
+    spouses: [
+      { id: "adebayo-alabi", type: "current", label: "Adebayo Alabi (Spouse)" }
+    ],
     generation: 2,
     role: "Eldest Daughter / Lagos Lead",
     education: {
@@ -238,10 +349,14 @@ const SEED_MEMBERS = [
     deathDate: null,
     status: "Living",
     nationality: "Nigerian",
+    countryFlag: "🇳🇬",
     biography: "Adebayo Alabi is a visionary investment banker and venture capitalist. Educated at the Wharton School, University of Pennsylvania, Bayo worked on Wall Street for a decade before returning to Nigeria to co-found Silk Road Capital, one of West Africa's leading private equity firms. Under his leadership, the firm has funded major renewable energy, agritech, and fintech startups across the continent.",
     fatherId: null,
     motherId: null,
     spouseId: "funmi-alabi",
+    spouses: [
+      { id: "funmi-alabi", type: "current", label: "Funmilayo Alabi (Spouse)" }
+    ],
     generation: 2,
     role: "Spouse (Lagos Branch)",
     education: {
@@ -281,10 +396,14 @@ const SEED_MEMBERS = [
     deathDate: null,
     status: "Living",
     nationality: "Nigerian",
+    countryFlag: "🇳🇬",
     biography: "Major Kunle Lawal is the youngest son of Kolawole and Fatima. A graduate of the Nigerian Defence Academy (NDA) and Sandhurst Royal Military Academy in the UK, Kunle is an elite tactical officer and intelligence specialist in the Nigerian Army. He has served with distinction in multiple international peacekeeping operations under the UN and ECOWAS. Currently, he is stationed in Abuja in a defense intelligence advisory capacity.",
     fatherId: "kolawole-lawal",
     motherId: "fatima-lawal",
     spouseId: "chioma-lawal",
+    spouses: [
+      { id: "chioma-lawal", type: "current", label: "Chioma Lawal (Spouse)" }
+    ],
     generation: 2,
     role: "Youngest Son / Abuja Lead",
     education: {
@@ -325,10 +444,14 @@ const SEED_MEMBERS = [
     deathDate: null,
     status: "Living",
     nationality: "Nigerian",
+    countryFlag: "🇳🇬",
     biography: "Chioma Lawal (née Nwachukwu) is a leading public health professional and clinical research coordinator. Educated at the University of Nigeria, Nsukka, and the London School of Hygiene & Tropical Medicine (LSHTM), she works closely with the World Health Organization and the Nigerian Centre for Disease Control (NCDC) on infectious disease surveillance and maternal health initiatives.",
     fatherId: null,
     motherId: null,
     spouseId: "kunle-lawal",
+    spouses: [
+      { id: "kunle-lawal", type: "current", label: "Major Kunle (Spouse)" }
+    ],
     generation: 2,
     role: "Spouse (Abuja Branch)",
     education: {
@@ -358,6 +481,48 @@ const SEED_MEMBERS = [
     ]
   },
   {
+    id: "ronke-lawal",
+    firstName: "Ronke",
+    lastName: "Lawal",
+    nickname: "Ronnie",
+    gender: "Female",
+    birthDate: "1974-09-02",
+    birthPlace: "Lagos, Nigeria",
+    deathDate: null,
+    status: "Living",
+    nationality: "Nigerian",
+    countryFlag: "🇳🇬",
+    biography: "Ronke Lawal is a cousin/niece raised directly in the Lawal household, cementing the single-parent family model. A fiercely independent brand consultant and writer based in Lagos, she is a single mother who raises her son Damola with premium education and family values.",
+    fatherId: null,
+    motherId: null,
+    spouseId: null,
+    spouses: [],
+    generation: 2,
+    role: "Brand Strategist / Single Mother",
+    education: {
+      schools: "International School Lagos",
+      university: "University of Lagos (B.A. English & Communications)"
+    },
+    military: { service: "None", history: "" },
+    career: {
+      occupation: "Chief PR Director",
+      history: "Founder of Ronnie PR Advisory Lagos (2004-Present), raising brands globally."
+    },
+    achievements: "Lagos Media Excellence Award (2018).",
+    languages: "English, Yoruba",
+    hobbies: "Blogging, African Art, Spoken Word poetry",
+    sports: "Yoga",
+    books: "The Joys of Motherhood",
+    music: "Asa, Sade Adu",
+    travel: "Nigeria, UK, USA",
+    avatar: "https://images.unsplash.com/photo-1548142813-c348350df52b?auto=format&fit=crop&w=300&q=80",
+    timeline: [
+      { year: 1974, title: "Born in Lagos", description: "Welcomed into the Lawal household's extended branches." },
+      { year: 1996, title: "UNILAG Graduation", description: "Completed Communication studies with premium academic record." },
+      { year: 2005, title: "Birth of Damola", description: "Welcomed her beloved son Damola as a single mother." }
+    ]
+  },
+  {
     id: "amina-lawal",
     firstName: "Amina",
     lastName: "Lawal",
@@ -368,10 +533,12 @@ const SEED_MEMBERS = [
     deathDate: null,
     status: "Living",
     nationality: "British/Nigerian",
+    countryFlag: "🇬🇧",
     biography: "Amina Lawal is the eldest daughter of Dr. Tunde and Dr. Folasade Lawal. She is a brilliant software engineer, currently based in London. Amina studied Computer Science at the University of Oxford, graduating with First Class Honors. She worked at Google UK as an AI engineer before launching her own educational technology startup, 'Edutech Lawal', aiming to provide free digital coding curriculum to millions of kids across West Africa.",
     fatherId: "tunde-lawal",
     motherId: "sade-lawal",
     spouseId: null,
+    spouses: [],
     generation: 3,
     role: "Grandchild (UK)",
     education: {
@@ -412,10 +579,12 @@ const SEED_MEMBERS = [
     deathDate: null,
     status: "Living",
     nationality: "British/Nigerian",
+    countryFlag: "🇬🇧",
     biography: "Yusuf Lawal is the second child of Tunde and Folasade. He is a rising architect who completed his architecture degrees at the University College London (The Bartlett School). Yusuf is deeply committed to sustainable and green urban architectures, blending traditional Yoruba mud and bamboo building methods with contemporary glass steel construction styles. He currently works at Foster + Partners in London.",
     fatherId: "tunde-lawal",
     motherId: "sade-lawal",
     spouseId: null,
+    spouses: [],
     generation: 3,
     role: "Grandchild (UK)",
     education: {
@@ -445,6 +614,49 @@ const SEED_MEMBERS = [
     ]
   },
   {
+    id: "bisi-lawal",
+    firstName: "Bisi",
+    lastName: "Lawal",
+    nickname: "Bees",
+    gender: "Female",
+    birthDate: "2002-11-12",
+    birthPlace: "Lagos, Nigeria",
+    deathDate: null,
+    status: "Living",
+    nationality: "British/Nigerian",
+    countryFlag: "🇬🇧",
+    biography: "Bisi Lawal is the legally adopted daughter of Dr. Tunde and Dr. Folasade Lawal. Adored by her siblings Amina and Yusuf, Bisi is an extremely gifted violinist studying at the Royal College of Music, London, bridging biological and chosen family pathways.",
+    fatherId: "tunde-lawal",
+    motherId: "sade-lawal",
+    relationshipType: "Adopted", // Custom relationship badge indicator
+    spouseId: null,
+    spouses: [],
+    generation: 3,
+    role: "Violinist / Adopted Grandchild",
+    education: {
+      schools: "St Paul's Girls' School London",
+      university: "Royal College of Music, London (B.Mus Performance)"
+    },
+    military: { service: "None", history: "" },
+    career: {
+      occupation: "Classical Musician",
+      history: "First violinist at London Youth Symphony (2021-Present), Founder of Afro-Classical Strings ensemble."
+    },
+    achievements: "Royal Philharmonic Society Young Musician Prize Nominee (2023).",
+    languages: "English, Yoruba, German",
+    hobbies: "Violin Solo, Clay Arts, Culinary History",
+    sports: "Tennis",
+    books: "The Cello Suites by Eric Siblin",
+    music: "Mozart, Beethoven, Fela Sowande",
+    travel: "UK, Nigeria, Austria, Germany",
+    avatar: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=300&q=80",
+    timeline: [
+      { year: 2002, title: "Born in Lagos", description: "Born in Lagos; embraced into Tunde and Folasade's medical home." },
+      { year: 2010, title: "First Violin Solo", description: "Performed at London community charity concert." },
+      { year: 2021, title: "Royal College of Music", description: "Secured full scholarship for undergraduate classical strings studies." }
+    ]
+  },
+  {
     id: "tolani-alabi",
     firstName: "Tolani",
     lastName: "Alabi",
@@ -455,10 +667,12 @@ const SEED_MEMBERS = [
     deathDate: null,
     status: "Living",
     nationality: "Nigerian/American",
+    countryFlag: "🇺🇸",
     biography: "Tolani Alabi is the daughter of Funmilayo and Adebayo Alabi. She is an exceptionally talented financial analyst and corporate strategist. Tolani studied Economics at Yale University before obtaining an MBA from Harvard Business School. She works in New York City as an Investment Director for a leading global Impact Fund, specializing in funding scalable healthcare and fintech platforms in emerging markets.",
     fatherId: "adebayo-alabi",
     motherId: "funmi-alabi",
     spouseId: null,
+    spouses: [],
     generation: 3,
     role: "Grandchild (US/Lagos)",
     education: {
@@ -498,10 +712,12 @@ const SEED_MEMBERS = [
     deathDate: null,
     status: "Living",
     nationality: "Nigerian",
+    countryFlag: "🇳🇬",
     biography: "Femi Lawal is the teenage son of Kunle and Chioma Lawal. Currently a senior undergraduate studying Fine Arts and New Media at the University of Lagos, Femi is an avid visual illustrator and multi-disciplinary conceptual artist. His digital art collections, themed around modern Yoruba mythologies and hyper-futurism, have been featured in underground galleries in Lagos and Abuja.",
     fatherId: "kunle-lawal",
     motherId: "chioma-lawal",
     spouseId: null,
+    spouses: [],
     generation: 3,
     role: "Grandchild (Lagos/Abuja)",
     education: {
@@ -528,6 +744,47 @@ const SEED_MEMBERS = [
       { year: 2004, title: "Born in Abuja", description: "Youngest grandson of the Lawal dynasty." },
       { year: 2021, title: "Entered UNILAG", description: "Admitted into the Department of Creative Arts." },
       { year: 2023, title: "Lagos Photo Festival", description: "Gained national acclaim for his Afro-cyberpunk art pieces." }
+    ]
+  },
+  {
+    id: "damola-lawal",
+    firstName: "Damola",
+    lastName: "Lawal",
+    nickname: "Dams",
+    gender: "Male",
+    birthDate: "2005-08-10",
+    birthPlace: "Lagos, Nigeria",
+    deathDate: null,
+    status: "Living",
+    nationality: "Nigerian",
+    countryFlag: "🇳🇬",
+    biography: "Damola Lawal is the son of brand specialist Ronke Lawal, representing a key single-parent structure. He is a passionate soccer enthusiast and software enthusiast currently pursuing studies in web sciences at the University of Lagos.",
+    fatherId: null, // Unknown/Unlisted biological father
+    motherId: "ronke-lawal",
+    spouseId: null,
+    spouses: [],
+    generation: 3,
+    role: "Student / Grandchild",
+    education: {
+      schools: "Atlantic Hall School Lagos",
+      university: "University of Lagos (B.Sc Systems Engineering - in progress)"
+    },
+    military: { service: "None", history: "" },
+    career: {
+      occupation: "Systems Undergrad",
+      history: "Summer engineering fellow at EduTech Lawal (2023)."
+    },
+    achievements: "Lagos Youth Soccer League Champion (2022).",
+    languages: "English, Yoruba, Pidgin",
+    hobbies: "Web Coding, Football Analyst, Gaming",
+    sports: "Football",
+    books: "The Phoenix Project",
+    music: "Wizkid, Burna Boy",
+    travel: "Nigeria, Ghana, UK",
+    avatar: "https://images.unsplash.com/photo-1500048993953-d23a436266cf?auto=format&fit=crop&w=300&q=80",
+    timeline: [
+      { year: 2005, title: "Born in Lagos", description: "Son of Ronke Lawal." },
+      { year: 2022, title: "Entered UNILAG", description: "Admitted into Systems Engineering program." }
     ]
   }
 ];
@@ -672,7 +929,9 @@ export class DB {
       return !!localStorage.getItem(key);
     };
 
-    if (!checkKey("lawal_members")) {
+    // Override local storage cache to force update seeds if schema changes
+    const forceReset = false;
+    if (forceReset || !checkKey("lawal_members") || this.getStorageItem("lawal_members", []).length < 13) {
       this.setStorageItem("lawal_members", SEED_MEMBERS);
     }
     if (!checkKey("lawal_news")) {
@@ -734,6 +993,9 @@ export class DB {
         if (m.fatherId === id) m.fatherId = null;
         if (m.motherId === id) m.motherId = null;
         if (m.spouseId === id) m.spouseId = null;
+        if (m.spouses) {
+          m.spouses = m.spouses.filter(sp => sp.id !== id);
+        }
       });
       this.setStorageItem("lawal_members", members);
       this.logActivity("Deleted Family Member", `Removed ${deleted.firstName} ${deleted.lastName} from the tree.`);
