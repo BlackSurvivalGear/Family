@@ -185,7 +185,7 @@
   <script type="module">
     import { DB } from './js/db.js';
     import { app, auth, db } from './js/firebase/firebase.js';
-    import { initializeAuth } from './js/firebase/auth.js';
+    import { initializeAuth, loginUser, resendVerification } from './js/firebase/auth.js';
 
     DB.init();
     initializeAuth();
@@ -207,6 +207,20 @@
       togglePassword.innerHTML = type === 'password' ? '<i class="fa-solid fa-eye"></i>' : '<i class="fa-solid fa-eye-slash"></i>';
     });
 
+    // Helper to translate Firebase Auth errors into beautiful family portal warnings
+    function translateAuthError(error) {
+      console.error("[House of Lawal Auth Error]:", error);
+      const code = error.code || error.message || "";
+      if (code.includes("user-not-found") || code.includes("wrong-password") || code.includes("invalid-credential")) {
+        return "Invalid relative email address or security code.";
+      } else if (code.includes("invalid-email")) {
+        return "Please enter a valid family relative email address.";
+      } else if (code.includes("network-request-failed")) {
+        return "Network connection issue. Please check your internet connection.";
+      }
+      return "An unexpected portal authentication error occurred. Please contact the administrator.";
+    }
+
     // Helper to run loading screen and redirect
     function processLoginRedirect(userObject) {
       localStorage.setItem('lawal_current_user', JSON.stringify(userObject));
@@ -218,41 +232,84 @@
       setTimeout(() => {
         loadingMsg.textContent = "Decrypting relationship nodes...";
         setTimeout(() => {
-          window.location.href = 'dashboard.html';
+          // Check for redirect param
+          const params = new URLSearchParams(window.location.search);
+          const dest = params.get('redirect') || 'dashboard.html';
+          window.location.href = dest;
         }, 1200);
       }, 1000);
     }
 
     // Submit Action
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      alertBox.classList.add('hidden');
+      alertBox.innerHTML = '';
 
-      const email = emailInput.value.trim().toLowerCase();
+      const email = emailInput.value.trim();
       const password = passwordInput.value;
 
-      // Mock user database resolution or general simulation
-      const members = DB.getMembers();
-      // Look for a member with matching email, or general fallback
-      let matched = members.find(m => `${m.id}@lawal.org` === email || `${m.firstName.toLowerCase()}@lawal.org` === email);
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = 'Authenticating <i class="fa-solid fa-circle-notch animate-spin ml-1"></i>';
 
-      if (!matched && email === "admin@lawal.org" && password === "admin123") {
-        matched = members.find(m => m.id === "tunde-lawal");
-      }
+      try {
+        const user = await loginUser(email, password);
 
-      if (matched || (email && password.length >= 6)) {
-        const user = matched || {
-          id: "custom-user",
-          firstName: "Honored",
-          lastName: "Relative",
-          gender: "Male",
-          avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80",
-          role: "Family Relative",
-          generation: 3
-        };
-        processLoginRedirect(user);
-      } else {
+        // If email is not verified, warn the user, but still let them login
+        if (user.emailVerified === false) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalText;
+
+          alertBox.className = "text-xs py-3.5 px-4 rounded-xl border border-gold/30 bg-gold/5 text-slate-200 flex flex-col gap-2.5 text-left";
+          alertBox.innerHTML = `
+            <div class="flex items-start gap-2">
+              <i class="fa-solid fa-circle-exclamation text-gold text-sm mt-0.5"></i>
+              <div class="flex flex-col gap-1">
+                <span class="font-bold text-white">Email Verification Required</span>
+                <span class="font-light leading-relaxed">Your email is not verified yet. You can proceed to the dashboard, but we recommend verifying your email for full access.</span>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-2 mt-1">
+              <button type="button" id="resend-verification-btn" class="px-3 py-1.5 bg-gold/10 hover:bg-gold/20 border border-gold/25 rounded-lg text-[10px] text-gold font-semibold uppercase tracking-wider transition-colors">
+                Resend Verification Email
+              </button>
+              <button type="button" id="proceed-unverified-btn" class="px-3 py-1.5 bg-emerald hover:bg-emerald-hover text-slate-950 rounded-lg text-[10px] text-slate-950 font-bold uppercase tracking-wider transition-colors">
+                Continue to Dashboard
+              </button>
+            </div>
+          `;
+          alertBox.classList.remove('hidden');
+
+          // Bind event listeners for the warnings buttons
+          document.getElementById('resend-verification-btn').addEventListener('click', async (btnEvt) => {
+            const resendBtn = btnEvt.target;
+            resendBtn.disabled = true;
+            resendBtn.textContent = "Sending...";
+            try {
+              await resendVerification();
+              resendBtn.textContent = "Verification Sent!";
+              resendBtn.className = "px-3 py-1.5 bg-emerald/10 border border-emerald/25 rounded-lg text-[10px] text-emerald font-semibold uppercase tracking-wider pointer-events-none";
+            } catch (resendErr) {
+              console.error("Resend verification failed:", resendErr);
+              resendBtn.textContent = "Failed to send. Try again.";
+              resendBtn.disabled = false;
+            }
+          });
+
+          document.getElementById('proceed-unverified-btn').addEventListener('click', () => {
+            processLoginRedirect(user);
+          });
+        } else {
+          processLoginRedirect(user);
+        }
+      } catch (error) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+
         alertBox.className = "text-xs py-2.5 px-3 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400";
-        alertBox.textContent = "Invalid security code or unapproved relative email.";
+        alertBox.textContent = translateAuthError(error);
         alertBox.classList.remove('hidden');
       }
     });
@@ -266,7 +323,8 @@
       if (member) {
         emailInput.value = `${member.id}@lawal.org`;
         passwordInput.value = "secret123";
-        processLoginRedirect(member);
+        // Auto signin demo profile using password secret123
+        form.dispatchEvent(new Event('submit'));
       }
     });
   </script>

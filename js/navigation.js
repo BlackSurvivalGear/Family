@@ -2,9 +2,30 @@ import { Auth } from './auth.js';
 import { DB } from './db.js';
 import { app, auth, db } from './firebase/firebase.js';
 import { canView, canEdit, canDelete } from './firebase/permissions.js';
+import { initializeAuth, authCheckPromise } from './firebase/auth.js';
+
+// Hide the document early to prevent page flicker for protected views
+const isPublicPage = () => {
+  const path = window.location.pathname;
+  const file = path.substring(path.lastIndexOf('/') + 1) || 'index.html';
+  const publicPages = ['index.html', 'signin.html', 'register.html', 'forgot-password.html', '404.html'];
+  return publicPages.includes(file);
+};
+
+if (!isPublicPage()) {
+  document.documentElement.style.visibility = 'hidden';
+}
 
 export class Navigation {
-  static init() {
+  static async init() {
+    // Initialize Auth listener and wait for first state check
+    try {
+      await initializeAuth();
+      await authCheckPromise;
+    } catch (e) {
+      console.error("Auth initialization failed:", e);
+    }
+
     // Check authentication
     const user = Auth.requireAuth();
     if (!user) return;
@@ -17,6 +38,9 @@ export class Navigation {
     // Register UI Listeners
     this.registerToggles();
     this.applySavedTheme();
+
+    // Make the page visible
+    document.documentElement.style.visibility = 'visible';
   }
 
   static renderSidebar(user) {
