@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>House of Lawal Backend Architecture Tests</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #111827;
+      color: #F3F4F6;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    h1 { color: #F59E0B; }
+    .test-case {
+      padding: 12px;
+      margin-bottom: 8px;
+      border-radius: 6px;
+      border-left: 5px solid;
+    }
+    .pass {
+      background: #064E3B;
+      border-color: #10B981;
+    }
+    .fail {
+      background: #7F1D1D;
+      border-color: #EF4444;
+    }
+    #summary {
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-bottom: 20px;
+      padding: 15px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Backend Architecture Test Suite</h1>
+  <div id="summary">Running tests...</div>
+  <div id="results"></div>
+
+  <script type="module">
+    import { validateMember, detectDuplicateMember } from "./js/validators/memberValidator.js";
+    import { validateRelationship, detectCircularAncestry, RELATIONSHIP_TYPES } from "./js/validators/relationshipValidator.js";
+    import * as familyRepo from "./js/repositories/familyRepository.js";
+    import * as relRepo from "./js/repositories/relationshipRepository.js";
+    import * as auditRepo from "./js/repositories/auditLogRepository.js";
+    import * as branchRepo from "./js/repositories/branchRepository.js";
+    import * as timelineRepo from "./js/repositories/timelineRepository.js";
+    import * as mediaRepo from "./js/repositories/mediaRepository.js";
+    import * as docRepo from "./js/repositories/documentRepository.js";
+
+    const resultsDiv = document.getElementById("results");
+    const summaryDiv = document.getElementById("summary");
+
+    let totalTests = 0;
+    let passedTests = 0;
+
+    function assert(condition, message) {
+      totalTests++;
+      const div = document.createElement("div");
+      div.className = "test-case " + (condition ? "pass" : "fail");
+      div.textContent = (condition ? "✓ PASS: " : "✗ FAIL: ") + message;
+      resultsDiv.appendChild(div);
+      if (condition) passedTests++;
+    }
+
+    async function runTests() {
+      // Clear storage to isolate tests
+      localStorage.clear();
+
+      try {
+        // =====================================================================
+        // 1. MEMBER VALIDATOR TESTS
+        // =====================================================================
+        console.log("Running Member Validator Tests...");
+
+        // Success case
+        const validMember = {
+          firstName: "Lateef",
+          lastName: "Lawal",
+          gender: "Male",
+          birthDate: "1990-01-01",
+          living: true
+        };
+        const res1 = validateMember(validMember);
+        assert(res1.isValid, "Valid member should pass validation.");
+
+        // Failure: Missing first name
+        const invalidMember1 = { lastName: "Lawal", gender: "Male" };
+        assert(!validateMember(invalidMember1).isValid, "Member without first name should fail validation.");
+
+        // Failure: Invalid gender
+        const invalidMember2 = { firstName: "A", lastName: "B", gender: "Robot" };
+        assert(!validateMember(invalidMember2).isValid, "Member with invalid gender should fail validation.");
+
+        // Failure: Birth after death
+        const invalidMember3 = {
+          firstName: "A",
+          lastName: "B",
+          gender: "Male",
+          birthDate: "2020-01-01",
+          deathDate: "2010-01-01",
+          living: false
+        };
+        assert(!validateMember(invalidMember3).isValid, "Birth date after death date should fail validation.");
+
+        // Failure: Living but has death date
+        const invalidMember4 = {
+          firstName: "A",
+          lastName: "B",
+          gender: "Male",
+          birthDate: "2000-01-01",
+          deathDate: "2020-01-01",
+          living: true
+        };
+        assert(!validateMember(invalidMember4).isValid, "Living member cannot have death date.");
+
+        // Duplicate detection
+        const list = [
+          { firstName: "Lateef", lastName: "Lawal", birthDate: "1990-01-01", memberId: "m1" }
+        ];
+        const dupMatch = detectDuplicateMember({ firstName: "Lateef", lastName: "Lawal", birthDate: "1990-01-01" }, list);
+        assert(dupMatch !== null && dupMatch.memberId === "m1", "Duplicate member correctly detected.");
+
+        // =====================================================================
+        // 2. RELATIONSHIP VALIDATOR TESTS
+        // =====================================================================
+        console.log("Running Relationship Validator Tests...");
+
+        // Success case
+        const validRel = {
+          personA: "p1",
+          personB: "p2",
+          relationshipType: RELATIONSHIP_TYPES.SPOUSE
+        };
+        assert(validateRelationship(validRel).isValid, "Valid relationship should pass validation.");
+
+        // Failure: Self relationship
+        const selfRel = {
+          personA: "p1",
+          personB: "p1",
+          relationshipType: RELATIONSHIP_TYPES.SPOUSE
+        };
+        assert(!validateRelationship(selfRel).isValid, "Self-relationship is invalid.");
+
+        // Failure: Invalid relationship type
+        const badTypeRel = {
+          personA: "p1",
+          personB: "p2",
+          relationshipType: "BEST_FRIEND"
+        };
+        assert(!validateRelationship(badTypeRel).isValid, "Invalid relationship type should fail validation.");
+
+        // Failure: Start date after end date
+        const badDatesRel = {
+          personA: "p1",
+          personB: "p2",
+          relationshipType: RELATIONSHIP_TYPES.SPOUSE,
+          startDate: "2020-01-01",
+          endDate: "2010-01-01"
+        };
+        assert(!validateRelationship(badDatesRel).isValid, "Start date after end date should fail validation.");
+
+        // Circular ancestry checks
+        // Set up list of relationships: A is parent of B, B is parent of C
+        const currentRels = [
+          { personA: "A", personB: "B", relationshipType: RELATIONSHIP_TYPES.BIOLOGICAL_FATHER },
+          { personA: "B", personB: "C", relationshipType: RELATIONSHIP_TYPES.BIOLOGICAL_MOTHER }
+        ];
+        // Proposed parent: C is parent of A (This creates cycle C -> A -> B -> C)
+        assert(detectCircularAncestry("A", "C", currentRels), "Circular ancestry loop detected correctly.");
+        assert(!detectCircularAncestry("A", "D", currentRels), "Non-circular ancestry checks out.");
+
+        // =====================================================================
+        // 3. REPOSITORY CRUD & AUDIT TESTS
+        // =====================================================================
+        console.log("Running Repository CRUD Tests...");
+
+        // Family Repository
+        const createdMemId = await familyRepo.create({
+          firstName: "Alhaji",
+          lastName: "Tester",
+          gender: "Male",
+          living: true
+        });
+        assert(typeof createdMemId === "string", "familyRepo.create returns string ID.");
+
+        const retrievedMem = await familyRepo.findById(createdMemId);
+        assert(retrievedMem !== null && retrievedMem.lastName === "Tester", "familyRepo.findById retrieves correct member.");
+
+        await familyRepo.update(createdMemId, { firstName: "Chief" });
+        const updatedMem = await familyRepo.findById(createdMemId);
+        assert(updatedMem.firstName === "Chief", "familyRepo.update changes fields correctly.");
+
+        // Delete (soft delete)
+        await familyRepo.deleteMember(createdMemId);
+        const deletedMem = await familyRepo.findById(createdMemId);
+        assert(deletedMem === null, "familyRepo.deleteMember soft deletes member.");
+
+        // Audit Logs Check
+        const logs = await auditRepo.findAll();
+        assert(logs.length >= 3, "Audit logs automatically recorded write operations.");
+        assert(logs[0].action === "DELETE" && logs[0].collection === "familyMembers", "Soft-delete is logged correctly.");
+        assert(logs[1].action === "UPDATE", "Update is logged correctly.");
+        assert(logs[2].action === "CREATE", "Create is logged correctly.");
+
+        // Branch Repository
+        const branchId = await branchRepo.create({ name: "Abuja Branch", region: "Northern Nigeria" });
+        const foundBranch = await branchRepo.findById(branchId);
+        assert(foundBranch !== null && foundBranch.region === "Northern Nigeria", "branchRepo creates and finds branch.");
+
+        // Timeline Repository
+        const timelineId = await timelineRepo.create({ year: "1960", title: "Independence", description: "Nigeria gained independence" });
+        const foundTime = await timelineRepo.findById(timelineId);
+        assert(foundTime !== null && foundTime.year === "1960", "timelineRepo works correctly.");
+
+        // Document Repository
+        const docId = await docRepo.create({ title: "Birth Cert", fileUrl: "http://example.com/file.pdf" });
+        const foundDoc = await docRepo.findById(docId);
+        assert(foundDoc !== null && foundDoc.title === "Birth Cert", "documentRepo works correctly.");
+
+        // Media Repository
+        const mediaId = await mediaRepo.create({ url: "http://example.com/pic.jpg", caption: "Old family house" });
+        const foundMedia = await mediaRepo.findById(mediaId);
+        assert(foundMedia !== null && foundMedia.url === "http://example.com/pic.jpg", "mediaRepo works correctly.");
+
+        // Relationship Repository Cycle Block
+        await relRepo.create({ personA: "ParentX", personB: "ChildY", relationshipType: RELATIONSHIP_TYPES.BIOLOGICAL_FATHER });
+        let threwCycleError = false;
+        try {
+          // Attempting to make ParentX a child of ChildY (this is a cycle)
+          await relRepo.create({ personA: "ChildY", personB: "ParentX", relationshipType: RELATIONSHIP_TYPES.BIOLOGICAL_FATHER });
+        } catch (e) {
+          threwCycleError = true;
+          console.log("Successfully blocked circular cycle:", e.message);
+        }
+        assert(threwCycleError, "relationshipRepo.create rejects circular parent-child loop.");
+
+      } catch (err) {
+        console.error("Test execution threw error:", err);
+        assert(false, "Test execution threw error: " + err.message);
+      }
+
+      // Update summary banner
+      const isSuccess = passedTests === totalTests;
+      summaryDiv.textContent = `${passedTests} / ${totalTests} tests passed. State: ` + (isSuccess ? "SUCCESS" : "FAILURE");
+      summaryDiv.style.background = isSuccess ? "#047857" : "#B91C1C";
+
+      // Inject test status for automation tracking
+      const indicator = document.createElement("div");
+      indicator.id = "test-status-indicator";
+      indicator.dataset.status = isSuccess ? "SUCCESS" : "FAILURE";
+      document.body.appendChild(indicator);
+    }
+
+    runTests();
+  </script>
+</body>
+</html>
