@@ -1,5 +1,7 @@
 import { Auth } from './auth.js';
 import { DB } from './db.js';
+import { app, auth, db } from './firebase/firebase.js';
+import { canView, canEdit, canDelete } from './firebase/permissions.js';
 
 export class Navigation {
   static init() {

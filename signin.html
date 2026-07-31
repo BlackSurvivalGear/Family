@@ -184,7 +184,11 @@
 
   <script type="module">
     import { DB } from './js/db.js';
+    import { app, auth, db } from './js/firebase/firebase.js';
+    import { initializeAuth } from './js/firebase/auth.js';
+
     DB.init();
+    initializeAuth();
 
     // Elements
     const form = document.getElementById('signin-form');
