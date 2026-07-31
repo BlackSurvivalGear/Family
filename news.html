@@ -39,13 +39,19 @@
     <main class="flex-grow p-6 md:p-8 flex flex-col gap-8 max-w-7xl mx-auto w-full">
 
       <!-- Headline banner -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
-        <div class="flex flex-col gap-1">
+      <div class="relative overflow-hidden rounded-3xl p-6 md:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-white/5 select-none">
+        <!-- Background Banner with LawalNG1.png -->
+        <div class="absolute inset-0 z-0">
+          <div class="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/80 to-slate-950/20 z-10"></div>
+          <img src="LawalNG1.png" alt="Lawal Family Heritage Backdrop" class="w-full h-full object-cover opacity-20" style="object-position: center 30%;">
+        </div>
+
+        <div class="relative z-10 flex flex-col gap-1 text-left">
           <h1 class="font-serif text-2xl md:text-3xl font-bold text-white tracking-wide">Family Announcements</h1>
-          <p class="text-xs text-slate-400 font-light">Announce and celebrate births, graduations, achievements, or honor obituaries within our lineage.</p>
+          <p class="text-xs text-slate-300 font-light">Announce and celebrate births, graduations, achievements, or honor obituaries within our lineage.</p>
         </div>
         <!-- Write announcement trigger -->
-        <button id="add-news-trigger-btn" class="px-4 h-8 bg-emerald hover:bg-emerald-hover text-slate-950 font-bold tracking-wider text-[10px] uppercase rounded-lg flex items-center gap-1.5 transition-all">
+        <button id="add-news-trigger-btn" class="relative z-10 px-4 h-8 bg-emerald hover:bg-emerald-hover text-slate-950 font-bold tracking-wider text-[10px] uppercase rounded-lg flex items-center gap-1.5 transition-all">
           <i class="fa-solid fa-pen-nib"></i> Publish Notice
         </button>
       </div>

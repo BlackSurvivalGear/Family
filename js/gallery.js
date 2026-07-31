@@ -5,56 +5,56 @@ const SEED_GALLERY_PHOTOS = [
     title: "The Lawal Grand Reunion Banquet",
     desc: "Extended relatives gathered in high spirits at the Civic Centre, Lagos, celebrating our foundational roots and academic milestones.",
     album: "Family Events",
-    url: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=800&q=80"
+    url: "LawalNG1.png"
   },
   {
     id: "img-2",
     title: "Alhaji Kolawole & Alhaja Fatima Marriage Traditional Solemnization",
     desc: "A gorgeous retro snapshot of Kolawole Lawal and Fatima Balogun during their traditional Yoruba nuptials in Lagos island, Dec 1963.",
     album: "Weddings",
-    url: "https://images.unsplash.com/photo-1542037104857-ffbb0b9155fb?auto=format&fit=crop&w=800&q=80"
+    url: "LawalNG1.png"
   },
   {
     id: "img-3",
     title: "Grandchildren Amina and Yusuf Playing in Hyde Park",
     desc: "A precious summer moment of Generation 3 branch children exploring the gardens of London.",
     album: "Children",
-    url: "https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=800&q=80"
+    url: "LawalNG1.png"
   },
   {
     id: "img-4",
     title: "Major Kunle Lawal Commissioning Ceremony",
     desc: "Officer cadet Kunle receiving military honors upon graduating from Royal Military Academy Sandhurst, UK.",
     album: "Military",
-    url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80"
+    url: "LawalNG1.png"
   },
   {
     id: "img-5",
     title: "Dr. Tunde & Sade Family Travel in Switzerland",
     desc: "Enjoying snowscapes in Zermatt during their annual winter clinical retreat holidays.",
     album: "Travel",
-    url: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80"
+    url: "LawalNG1.png"
   },
   {
     id: "img-6",
     title: "Ancient Lawal Homestead survey blueprints",
     desc: "Rare vintage photographs showing layout designs of the Egba ancestral property in Abeokuta, 1928.",
     album: "Old Photographs",
-    url: "https://images.unsplash.com/photo-1449034446853-66c86144b0ad?auto=format&fit=crop&w=800&q=80"
+    url: "LawalNG1.png"
   },
   {
     id: "img-7",
     title: "Tolani Alabi HBS Graduation portrait",
     desc: "Proud parents Bayo and Funmi SAN Alabi surrounding Tolani outside Harvard Business School.",
     album: "Family Events",
-    url: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80"
+    url: "LawalNG1.png"
   },
   {
     id: "img-8",
     title: "Traditional Weaving patterns in Abeokuta",
     desc: "Mama Lagos (Fatima) researching historic Yoruba lace motifs for her textile production houses.",
     album: "Old Photographs",
-    url: "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80"
+    url: "LawalNG1.png"
   }
 ];
 
