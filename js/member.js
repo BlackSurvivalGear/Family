@@ -1,7 +1,19 @@
 import { DB } from './db.js';
+import * as memberService from './services/memberService.js';
+import {
+  getFather,
+  getMother,
+  getParents,
+  getChildren,
+  getSpouses,
+  getCurrentSpouses,
+  getFormerSpouses,
+  getSiblings,
+  findRelationship
+} from './genealogy/relationshipEngine.js';
 
 export class MemberProfile {
-  static init() {
+  static async init() {
     DB.init();
 
     // Get Member ID from query string
@@ -13,19 +25,22 @@ export class MemberProfile {
       memberId = 'kolawole-lawal';
     }
 
-    const member = DB.getMember(memberId);
+    const member = await memberService.getMember(memberId);
     if (!member) {
       window.location.href = '404.html';
       return;
     }
 
+    // Adapt to UI expecting '.id'
+    member.id = member.memberId || member.id;
+
     this.currentMember = member;
 
     // Render components
-    this.renderBasicDetails(member);
+    await this.renderBasicDetails(member);
     this.renderIdentityDetails(member);
     this.renderAcademicAndCareer(member);
-    this.renderRelationships(member);
+    await this.renderRelationships(member);
     this.renderMilestones(member);
     this.renderAttachedMedia(member);
 
@@ -49,7 +64,7 @@ export class MemberProfile {
     this.bindAccordions();
   }
 
-  static renderBasicDetails(member) {
+  static async renderBasicDetails(member) {
     const isLiving = member.status === 'Living';
 
     document.getElementById('m-avatar').src = member.avatar || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80";
@@ -76,6 +91,21 @@ export class MemberProfile {
         adoptContainer.innerHTML = `<span class="text-[10px] tracking-wider uppercase bg-sky-500/15 border border-sky-500/25 text-sky-400 px-2 py-0.5 rounded-full font-bold">Adopted</span>`;
       } else {
         adoptContainer.innerHTML = '';
+      }
+    }
+
+    // Relationship summary with logged-in user
+    const loggedUser = JSON.parse(localStorage.getItem('lawal_current_user'));
+    if (loggedUser && (loggedUser.uid || loggedUser.id)) {
+      const loggedUserMemId = loggedUser.uid || loggedUser.id;
+      if (loggedUserMemId !== member.id) {
+        const relation = await findRelationship(member.id, loggedUserMemId);
+        if (relation && relation !== "UNRELATED") {
+          const roleEl = document.getElementById('m-role');
+          if (roleEl) {
+            roleEl.innerHTML += ` <span class="text-gold font-normal block sm:inline sm:ml-2 border-l border-white/10 sm:pl-2"><i class="fa-solid fa-network-wired text-[10px]"></i> ${relation} to you</span>`;
+          }
+        }
       }
     }
   }
@@ -108,72 +138,81 @@ export class MemberProfile {
     document.getElementById('det-achievements').textContent = ach;
   }
 
-  static renderRelationships(member) {
+  static async renderRelationships(member) {
     const container = document.getElementById('relations-list');
     if (!container) return;
 
-    const allMembers = DB.getMembers();
     const links = [];
 
-    // 1. Spouses (including multi-spouses)
-    const spouseIds = new Set();
-    if (member.spouseId) spouseIds.add(member.spouseId);
-    if (member.spouses) {
-      member.spouses.forEach(sp => spouseIds.add(sp.id));
-    }
+    // 1. Spouses (including multi-spouses) via Relationship Engine
+    const currentSpouses = await getCurrentSpouses(member.id);
+    const formerSpouses = await getFormerSpouses(member.id);
 
-    spouseIds.forEach(spId => {
-      const spouse = allMembers.find(m => m.id === spId);
-      if (spouse) {
-        // Find marriage type label if stored
-        let spouseLabel = "Spouse";
-        if (member.spouses) {
-          const matchSpObj = member.spouses.find(sp => sp.id === spId);
-          if (matchSpObj && matchSpObj.type === 'former') {
-            spouseLabel = "Former Spouse";
-          }
-        }
-        links.push({ rel: spouseLabel, name: `${spouse.firstName} ${spouse.lastName}`, id: spouse.id, icon: 'fa-ring text-gold' });
-      }
+    currentSpouses.forEach(s => {
+      links.push({
+        rel: "Spouse",
+        name: `${s.firstName} ${s.lastName}`,
+        id: s.memberId,
+        icon: 'fa-ring text-gold'
+      });
     });
 
-    // 2. Parents (and step parents/adoptive if specified)
-    if (member.fatherId) {
-      const father = allMembers.find(m => m.id === member.fatherId);
-      if (father) {
-        links.push({ rel: 'Father', name: `${father.firstName} ${father.lastName}`, id: father.id, icon: 'fa-user-tie text-blue-400' });
-      }
-    }
-    if (member.motherId) {
-      const mother = allMembers.find(m => m.id === member.motherId);
-      if (mother) {
-        links.push({ rel: 'Mother', name: `${mother.firstName} ${mother.lastName}`, id: mother.id, icon: 'fa-user text-pink-400' });
-      }
-    }
-
-    // 3. Children
-    const children = allMembers.filter(m => m.fatherId === member.id || m.motherId === member.id);
-    children.forEach(c => {
-      let relLabel = "Child";
-      if (c.relationshipType === 'Adopted') {
-        relLabel = "Adopted Child";
-      }
-      links.push({ rel: relLabel, name: `${c.firstName} ${c.lastName}`, id: c.id, icon: 'fa-child-reaching text-emerald' });
+    formerSpouses.forEach(s => {
+      links.push({
+        rel: "Former Spouse",
+        name: `${s.firstName} ${s.lastName}`,
+        id: s.memberId,
+        icon: 'fa-ring text-gold'
+      });
     });
 
-    // 4. Siblings (Half siblings vs full siblings check)
-    if (member.fatherId || member.motherId) {
-      const siblings = allMembers.filter(m =>
-        m.id !== member.id &&
-        ((member.fatherId && m.fatherId === member.fatherId) || (member.motherId && m.motherId === member.motherId))
-      );
-      siblings.forEach(s => {
-        // Check if full sibling or half sibling
-        const isFullSibling = (member.fatherId && s.fatherId === member.fatherId) && (member.motherId && s.motherId === member.motherId);
-        const relLabel = isFullSibling ? 'Sibling' : 'Half-Sibling';
-        links.push({ rel: relLabel, name: `${s.firstName} ${s.lastName}`, id: s.id, icon: 'fa-user-group text-slate-400' });
+    // 2. Parents via Relationship Engine
+    const father = await getFather(member.id);
+    const mother = await getMother(member.id);
+
+    if (father) {
+      links.push({
+        rel: 'Father',
+        name: `${father.firstName} ${father.lastName}`,
+        id: father.memberId,
+        icon: 'fa-user-tie text-blue-400'
       });
     }
+
+    if (mother) {
+      links.push({
+        rel: 'Mother',
+        name: `${mother.firstName} ${mother.lastName}`,
+        id: mother.memberId,
+        icon: 'fa-user text-pink-400'
+      });
+    }
+
+    // 3. Children via Relationship Engine
+    const children = await getChildren(member.id);
+    children.forEach(c => {
+      const relLabel = c.relationshipType === 'Adopted' ? "Adopted Child" : "Child";
+      links.push({
+        rel: relLabel,
+        name: `${c.firstName} ${c.lastName}`,
+        id: c.memberId,
+        icon: 'fa-child-reaching text-emerald'
+      });
+    });
+
+    // 4. Siblings via Relationship Engine
+    const siblings = await getSiblings(member.id);
+    siblings.forEach(s => {
+      // Check if full sibling or half sibling
+      const isFullSibling = (member.fatherId && s.fatherId === member.fatherId) && (member.motherId && s.motherId === member.motherId);
+      const relLabel = isFullSibling ? 'Sibling' : 'Half-Sibling';
+      links.push({
+        rel: relLabel,
+        name: `${s.firstName} ${s.lastName}`,
+        id: s.memberId,
+        icon: 'fa-user-group text-slate-400'
+      });
+    });
 
     if (links.length === 0) {
       container.innerHTML = '<span class="text-xs text-slate-500 italic font-light">No direct records connected.</span>';

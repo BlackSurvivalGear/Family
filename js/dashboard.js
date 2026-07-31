@@ -1,17 +1,18 @@
 import { DB } from './db.js';
+import * as memberService from './services/memberService.js';
 
 export class Dashboard {
-  static init() {
+  static async init() {
     DB.init();
 
     // 1. Welcome Message personalization
     this.personalizeWelcome();
 
     // 2. Compute and bind dashboard statistics
-    this.renderStats();
+    await this.renderStats();
 
     // 3. Render Upcoming Birthdays
-    this.renderBirthdays();
+    await this.renderBirthdays();
 
     // 4. Render News Announcements Feed
     this.renderNewsFeed();
@@ -37,8 +38,8 @@ export class Dashboard {
     }
   }
 
-  static renderStats() {
-    const members = DB.getMembers();
+  static async renderStats() {
+    const members = await memberService.searchMembers({ includeDeleted: false });
     const docs = DB.getDocuments();
 
     // Set metrics
@@ -56,7 +57,7 @@ export class Dashboard {
     document.getElementById('stat-photos').textContent = "5 Albums";
   }
 
-  static renderBirthdays() {
+  static async renderBirthdays() {
     const container = document.getElementById('birthdays-carousel');
     if (!container) return;
 
@@ -66,9 +67,14 @@ export class Dashboard {
       return;
     }
 
+    const rawMembers = await memberService.searchMembers({ includeDeleted: false });
+    const members = rawMembers.map(m => ({
+      ...m,
+      id: m.memberId || m.id
+    }));
+
     container.innerHTML = events.slice(0, 4).map(evt => {
       // Find matching family member if applicable to show profile avatar
-      const members = DB.getMembers();
       const relative = members.find(m => evt.title.includes(m.firstName));
       const avatarHtml = relative
         ? `<img src="${relative.avatar}" alt="${relative.firstName}" class="w-8 h-8 rounded-full object-cover border border-gold/25">`
