@@ -33,21 +33,30 @@ let app = null;
 let auth = null;
 let db = null;
 
+const isTestEnv = typeof window !== 'undefined' && window.location.pathname.includes('test_backend.html');
+
 try {
-  // Check if we have valid configuration fields (at least checking apiKey placeholder isn't an empty string)
-  if (firebaseConfig && firebaseConfig.apiKey) {
+  // Only use simulation mode if Firebase initialization actually fails,
+  // or if explicitly running local unit tests in test_backend.html.
+  if (firebaseConfig && firebaseConfig.apiKey && !isTestEnv) {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
-    console.log("[House of Lawal Backend] Firebase successfully initialized.");
+    console.log("✓ Connected to Firebase project: house-of-lawal");
   } else {
-    console.warn(
-      "[House of Lawal Backend] Firebase configuration is incomplete or missing in config.js. " +
-      "Falling back to local simulation."
-    );
+    throw new Error("Firebase configuration is incomplete or missing in config.js");
   }
 } catch (error) {
-  handleBackendError("Firebase Initialization", error);
+  if (!isTestEnv) {
+    handleBackendError("Firebase Initialization", error);
+  }
+  console.warn(
+    "[House of Lawal Backend] Firebase configuration is incomplete or missing in config.js. " +
+    "Falling back to local simulation."
+  );
+  app = null;
+  auth = null;
+  db = null;
 }
 
 export { app, auth, db };

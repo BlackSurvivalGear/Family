@@ -3,14 +3,17 @@ import sys
 from playwright.sync_api import sync_playwright
 
 def run_cuj(page):
+    page.on("console", lambda msg: print(f"[Browser Console] {msg.text}"))
     print("Step 1: Navigating to register.html")
     page.goto("http://localhost:8000/register.html")
     page.wait_for_timeout(1000)
 
+    import time
+    dynamic_email = f"jane.lawal.{int(time.time())}@lawal.org"
     print("Step 2: Testing Password Mismatch Validation")
     page.fill("#firstName", "Jane")
     page.fill("#lastName", "Lawal")
-    page.fill("#email", "jane.lawal@example.com")
+    page.fill("#email", dynamic_email)
     page.select_option("#generation", "3")
     page.select_option("#branch", "London")
     page.fill("#password", "password123")
@@ -41,21 +44,35 @@ def run_cuj(page):
     page.wait_for_timeout(1500)
 
     # Email verification modal should be visible
-    verify_modal = page.locator("#verify-modal")
-    if "opacity-100" in verify_modal.get_attribute("class"):
-        print("Success: Email Verification Modal displayed!")
-    else:
-        print("Error: Email Verification Modal is NOT active!")
+    print("Waiting for Email Verification Modal...")
+    page.wait_for_selector("#verify-modal.opacity-100", timeout=10000)
+    print("Success: Email Verification Modal displayed!")
 
     # Take screenshot of email verification modal
     page.screenshot(path="/app/verification/screenshots/email_modal.png")
 
-    print("Step 4: Confirming simulated email verification")
+    print("Step 4: Confirming email verification")
     page.click("#mock-verify-btn")
-    page.wait_for_timeout(2000)
+    page.wait_for_timeout(2500)
 
-    # Should redirect to dashboard.html
+    # If redirected to signin.html, log in with the new credentials
     print("Current URL:", page.url)
+    if "signin.html" in page.url:
+        print("Redirected to signin.html. Logging in with registered user...")
+        page.fill("#email", dynamic_email)
+        page.fill("#password", "password123")
+        page.click("button[type='submit']")
+        page.wait_for_timeout(2500)
+
+        # Check if the continue to dashboard button is visible for unverified user
+        proceed_btn = page.locator("#proceed-unverified-btn")
+        if proceed_btn.is_visible():
+            print("Clicking Continue to Dashboard button...")
+            proceed_btn.click()
+            page.wait_for_timeout(3000)
+
+        print("Current URL after login:", page.url)
+
     if "dashboard.html" in page.url:
         print("Success: Redirected to dashboard.html!")
     else:
