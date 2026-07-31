@@ -946,6 +946,70 @@ export class DB {
     if (!checkKey("lawal_timeline")) {
       this.setStorageItem("lawal_timeline", SEED_TIMELINE_HISTORY);
     }
+
+    // Seed modern familyRepository and relationshipRepository schema for offline support
+    if (forceReset || !checkKey("lawal_family_members") || this.getStorageItem("lawal_family_members", []).length < 13) {
+      const familyMembers = SEED_MEMBERS.map(m => ({
+        ...m,
+        memberId: m.id,
+        living: m.status === "Living"
+      }));
+      this.setStorageItem("lawal_family_members", familyMembers);
+    }
+
+    if (forceReset || !checkKey("lawal_relationships") || this.getStorageItem("lawal_relationships", []).length === 0) {
+      const relationships = [];
+      const addedSpouses = new Set();
+
+      SEED_MEMBERS.forEach(m => {
+        if (m.fatherId) {
+          const type = m.relationshipType === "Adopted" ? "ADOPTIVE_PARENT" : "BIOLOGICAL_FATHER";
+          relationships.push({
+            relationshipId: `rel-f-${m.id}-${m.fatherId}`,
+            personA: m.fatherId,
+            personB: m.id,
+            relationshipType: type,
+            status: "Current",
+            createdBy: "system",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          });
+        }
+        if (m.motherId) {
+          const type = m.relationshipType === "Adopted" ? "ADOPTIVE_PARENT" : "BIOLOGICAL_MOTHER";
+          relationships.push({
+            relationshipId: `rel-m-${m.id}-${m.motherId}`,
+            personA: m.motherId,
+            personB: m.id,
+            relationshipType: type,
+            status: "Current",
+            createdBy: "system",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          });
+        }
+        if (m.spouses) {
+          m.spouses.forEach(sp => {
+            const key = [m.id, sp.id].sort().join("-");
+            if (!addedSpouses.has(key)) {
+              addedSpouses.add(key);
+              const rType = sp.type === "current" ? "SPOUSE" : "FORMER_SPOUSE";
+              relationships.push({
+                relationshipId: `rel-s-${key}`,
+                personA: m.id,
+                personB: sp.id,
+                relationshipType: rType,
+                status: sp.type === "current" ? "Current" : "Past",
+                createdBy: "system",
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              });
+            }
+          });
+        }
+      });
+      this.setStorageItem("lawal_relationships", relationships);
+    }
   }
 
   // --- MEMBER API ---

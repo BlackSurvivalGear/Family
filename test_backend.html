@@ -302,6 +302,7 @@
         assert(isAnc === true, "isAncestor deep ancestry verified.");
 
         const relCousin = await engine.findRelationship(firstCousinId, childId);
+        console.log("DEBUG: relCousin =", relCousin);
         assert(relCousin === "First Cousin", "findRelationship correctly identifies First Cousin.");
 
         // =====================================================================

@@ -1,7 +1,8 @@
 import { DB } from './db.js';
+import * as memberService from './services/memberService.js';
 
 export class MembersDirectory {
-  static init() {
+  static async init() {
     DB.init();
 
     // Bind inputs
@@ -42,11 +43,16 @@ export class MembersDirectory {
     }
 
     // Initial render
-    this.render();
+    await this.render();
   }
 
-  static render() {
-    const members = DB.getMembers();
+  static async render() {
+    const rawMembers = await memberService.searchMembers({ includeDeleted: false });
+    const members = rawMembers.map(m => ({
+      ...m,
+      id: m.memberId || m.id
+    }));
+
     if (!this.grid) return;
 
     // Get filter values

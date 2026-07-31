@@ -1,4 +1,9 @@
 import { DB } from './db.js';
+import * as memberService from './services/memberService.js';
+import * as relationshipService from './services/relationshipService.js';
+import * as relationshipRepository from './repositories/relationshipRepository.js';
+import { getFather, getMother, getCurrentSpouses, getFormerSpouses } from './genealogy/relationshipEngine.js';
+import { subscribe } from './services/eventBus.js';
 
 // Global variables for canvas states
 let transformX = -1300;
@@ -15,7 +20,7 @@ let activeSelectedNodeId = null;
 const collapsedNodes = new Set();
 
 export class Tree {
-  static init() {
+  static async init() {
     DB.init();
 
     // Check query params for initial action
@@ -27,7 +32,7 @@ export class Tree {
     this.bindCanvasControls();
 
     // Render the initial tree
-    this.render();
+    await this.render();
 
     // Bind Toolbar Controls
     this.bindToolbarControls();
@@ -40,20 +45,60 @@ export class Tree {
 
     // Focus if requested
     if (focusId) {
-      setTimeout(() => {
+      setTimeout(async () => {
         this.centerOnMember(focusId);
         if (triggerEdit) {
-          const matched = DB.getMember(focusId);
-          if (matched) this.openEditModal(matched);
+          const matched = await memberService.getMember(focusId);
+          if (matched) {
+            const enriched = await this.enrichMember(matched);
+            this.openEditModal(enriched);
+          }
         }
       }, 500);
     }
+
+    // Subscribe to Event Bus to automatically refresh tree
+    subscribe("memberCreated", () => this.render());
+    subscribe("memberUpdated", () => this.render());
+    subscribe("memberDeleted", () => this.render());
+    subscribe("relationshipCreated", () => this.render());
+    subscribe("relationshipUpdated", () => this.render());
+    subscribe("relationshipDeleted", () => this.render());
 
     // Bind window resize
     window.addEventListener('resize', () => {
       this.updateSVGConnectors();
       this.updateMinimap();
     });
+  }
+
+  static async enrichMember(m) {
+    if (!m) return null;
+    const id = m.memberId || m.id;
+    const father = await getFather(id);
+    const mother = await getMother(id);
+    const currentSpouses = await getCurrentSpouses(id);
+    const formerSpouses = await getFormerSpouses(id);
+    const spousesList = [];
+    currentSpouses.forEach(s => {
+      spousesList.push({ id: s.memberId, type: "current", label: "Spouse" });
+    });
+    formerSpouses.forEach(s => {
+      spousesList.push({ id: s.memberId, type: "former", label: "Former Spouse" });
+    });
+
+    return {
+      ...m,
+      id,
+      fatherId: father ? father.memberId : null,
+      motherId: mother ? mother.memberId : null,
+      spouseId: currentSpouses[0] ? currentSpouses[0].memberId : null,
+      spouses: spousesList
+    };
+  }
+
+  static async enrichMembers(members) {
+    return await Promise.all(members.map(m => this.enrichMember(m)));
   }
 
   static bindAddMemberControls() {
@@ -67,7 +112,7 @@ export class Tree {
       modal.classList.remove('pointer-events-none', 'opacity-0');
       modal.classList.add('opacity-100');
 
-      const members = DB.getMembers();
+      const members = this.currentMembersList || [];
       const fathers = members.filter(m => m.gender === 'Male');
       const mothers = members.filter(m => m.gender === 'Female');
       const spouses = members;
@@ -187,7 +232,7 @@ export class Tree {
             <!-- Actions footer -->
             <div class="border-t border-white/5 pt-5 flex items-center justify-end gap-2.5">
               <button type="button" id="add-cancel-btn" class="h-10 px-4 bg-white/5 hover:bg-white/10 text-white rounded-lg font-semibold tracking-wider uppercase text-[10px] transition-colors">Cancel</button>
-              <button type="submit" class="h-10 px-6 bg-emerald text-slate-950 hover:bg-emerald-hover rounded-lg font-bold tracking-wider uppercase text-[10px] transition-colors">Create Relative</button>
+              <button type="submit" id="add-submit-btn" class="h-10 px-6 bg-emerald text-slate-950 hover:bg-emerald-hover rounded-lg font-bold tracking-wider uppercase text-[10px] transition-colors">Create Relative</button>
             </div>
 
           </form>
@@ -203,8 +248,15 @@ export class Tree {
       modal.querySelector('#add-cancel-btn').addEventListener('click', closeAddModal);
 
       // Handle form submission
-      modal.querySelector('#node-add-form').addEventListener('submit', (ev) => {
+      modal.querySelector('#node-add-form').addEventListener('submit', async (ev) => {
         ev.preventDefault();
+
+        // Prevent double submission
+        const submitBtn = modal.querySelector('#add-submit-btn');
+        if (submitBtn.disabled) return;
+        submitBtn.disabled = true;
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Creating...`;
 
         const firstName = modal.querySelector('#add-firstName').value.trim();
         const lastName = modal.querySelector('#add-lastName').value.trim();
@@ -229,42 +281,50 @@ export class Tree {
           generation,
           birthDate,
           birthPlace,
+          living: true,
           status: "Living",
           avatar,
           biography,
-          fatherId,
-          motherId,
-          spouseId,
-          spouses: spouseId ? [{ id: spouseId, type: "current", label: "Spouse" }] : [],
           education: { university: "Awaiting inputs" },
           timeline: []
         };
 
-        const added = DB.addMember(newMember);
+        try {
+          // Call member service
+          const memberId = await memberService.createMember(newMember);
 
-        // If spouse was selected, automatically update spouse link on that partner too!
-        if (spouseId) {
-          const partner = DB.getMember(spouseId);
-          if (partner) {
-            partner.spouseId = added.id;
-            if (!partner.spouses) partner.spouses = [];
-            partner.spouses.push({ id: added.id, type: "current", label: "Spouse" });
-            DB.saveMember(partner);
+          // Build relationships
+          if (fatherId) {
+            await relationshipService.addFather(memberId, fatherId);
           }
-        }
+          if (motherId) {
+            await relationshipService.addMother(memberId, motherId);
+          }
+          if (spouseId) {
+            await relationshipService.addSpouse(memberId, spouseId);
+          }
 
-        closeAddModal();
-        this.render();
+          closeAddModal();
+          await this.render();
+        } catch (error) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalText;
+          alert(`Error: ${error.message}`);
+        }
       });
     });
   }
 
-  static render() {
-    const members = DB.getMembers();
+  static async render() {
+    const rawMembers = await memberService.searchMembers({ includeDeleted: false });
+    const members = await this.enrichMembers(rawMembers);
     const cardsLayer = document.getElementById('tree-cards-layer');
     if (!cardsLayer) return;
 
     cardsLayer.innerHTML = '';
+
+    // Save active members list on Tree class for quick retrieval in other functions
+    this.currentMembersList = members;
 
     // 1. Calculate horizontal/vertical grid offsets for each member
     const coordinates = this.calculateTreeLayout(members);
@@ -391,7 +451,7 @@ export class Tree {
           break;
         }
         // Step up
-        const nextParent = current.fatherId ? DB.getMember(current.fatherId) : (current.motherId ? DB.getMember(current.motherId) : null);
+        const nextParent = current.fatherId ? this.currentMembersList.find(x => x.id === current.fatherId) : (current.motherId ? this.currentMembersList.find(x => x.id === current.motherId) : null);
         current = nextParent;
       }
 
@@ -434,8 +494,7 @@ export class Tree {
       : '<span class="px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[9px] font-bold border border-slate-700 flex items-center gap-1 shrink-0"><span class="w-1.5 h-1.5 bg-slate-500 rounded-full"></span> Deceased</span>';
 
     // Collapse toggle indicator if has children
-    const allMembers = DB.getMembers();
-    const children = allMembers.filter(m => m.fatherId === member.id || m.motherId === member.id);
+    const children = this.currentMembersList.filter(m => m.fatherId === member.id || m.motherId === member.id);
     const hasChildren = children.length > 0;
     const isCollapsed = collapsedNodes.has(member.id);
 
@@ -456,7 +515,7 @@ export class Tree {
       <!-- User basic metadata -->
       <div class="flex items-start gap-3 relative">
         <div class="relative shrink-0">
-          <img src="${member.avatar || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=80&q=80'}" alt="${member.firstName}" class="w-12 h-12 rounded-2xl object-cover border-2 border-gold/25 group-hover:border-gold transition-all shadow-inner">
+          <img src="${member.avatar || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80'}" alt="${member.firstName}" class="w-12 h-12 rounded-2xl object-cover border-2 border-gold/25 group-hover:border-gold transition-all shadow-inner">
           <span class="absolute -top-1 -left-1 w-4.5 h-4.5 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center text-[8px]">
             ${isMale ? '<i class="fa-solid fa-mars text-blue-400"></i>' : '<i class="fa-solid fa-venus text-pink-400"></i>'}
           </span>
@@ -547,8 +606,8 @@ export class Tree {
   }
 
   static isRelated(targetId, activeId) {
-    const target = DB.getMember(targetId);
-    const active = DB.getMember(activeId);
+    const target = this.currentMembersList.find(m => m.id === targetId);
+    const active = this.currentMembersList.find(m => m.id === activeId);
     if (!target || !active) return false;
 
     // 1. Spouses
@@ -572,7 +631,7 @@ export class Tree {
     if (!svgLayer) return;
 
     svgLayer.innerHTML = '';
-    const members = DB.getMembers();
+    const members = this.currentMembersList || [];
     const coords = this.coordinates;
     if (!coords) return;
 
@@ -907,7 +966,7 @@ export class Tree {
       const coord = coords[memberId];
       if (!coord) return;
 
-      const m = DB.getMember(memberId);
+      const m = this.currentMembersList.find(x => x.id === memberId);
       if (!m || collapsedNodes.has(memberId)) return;
 
       const dot = document.createElement('div');
@@ -964,7 +1023,7 @@ export class Tree {
         return;
       }
 
-      const members = DB.getMembers();
+      const members = this.currentMembersList || [];
       const matched = members.filter(m =>
         m.firstName.toLowerCase().includes(val) ||
         m.lastName.toLowerCase().includes(val) ||
@@ -1171,8 +1230,8 @@ export class Tree {
     modal.classList.remove('pointer-events-none', 'opacity-0');
     modal.classList.add('opacity-100');
 
-    const parents = DB.getMembers().filter(m => m.gender === 'Male' && m.id !== member.id);
-    const spouses = DB.getMembers().filter(m => m.id !== member.id);
+    const parents = this.currentMembersList.filter(m => m.gender === 'Male' && m.id !== member.id);
+    const spouses = this.currentMembersList.filter(m => m.id !== member.id);
 
     modal.innerHTML = `
       <div class="w-full max-w-2xl bg-slate-900 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-fade-in" id="edit-modal-card">
@@ -1274,7 +1333,7 @@ export class Tree {
             </button>
             <div class="flex gap-2">
               <button type="button" id="modal-cancel-btn" class="h-10 px-4 bg-white/5 hover:bg-white/10 text-white rounded-lg font-semibold tracking-wider uppercase text-[10px] transition-colors">Cancel</button>
-              <button type="submit" class="h-10 px-6 bg-gold text-slate-950 hover:bg-gold-hover rounded-lg font-bold tracking-wider uppercase text-[10px] transition-colors">Save Updates</button>
+              <button type="submit" id="edit-submit-btn" class="h-10 px-6 bg-gold text-slate-950 hover:bg-gold-hover rounded-lg font-bold tracking-wider uppercase text-[10px] transition-colors">Save Updates</button>
             </div>
           </div>
 
@@ -1298,34 +1357,81 @@ export class Tree {
 
     // Handle form submit
     const editForm = modal.querySelector('#node-edit-form');
-    editForm.addEventListener('submit', (e) => {
+    editForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      // Read values
-      member.firstName = modal.querySelector('#edit-firstName').value.trim();
-      member.lastName = modal.querySelector('#edit-lastName').value.trim();
-      member.nickname = modal.querySelector('#edit-nickname').value.trim();
-      member.role = modal.querySelector('#edit-role').value.trim();
-      member.birthDate = modal.querySelector('#edit-birthDate').value;
-      member.birthPlace = modal.querySelector('#edit-birthPlace').value.trim();
-      member.status = modal.querySelector('#edit-status').value;
-      member.deathDate = modal.querySelector('#edit-deathDate').value || null;
-      member.avatar = modal.querySelector('#edit-avatar').value.trim();
-      member.biography = modal.querySelector('#edit-biography').value.trim();
-      member.fatherId = modal.querySelector('#edit-father').value || null;
-      member.spouseId = modal.querySelector('#edit-spouse').value || null;
+      // Prevent double submission
+      const submitBtn = modal.querySelector('#edit-submit-btn');
+      if (submitBtn.disabled) return;
+      submitBtn.disabled = true;
+      const originalText = submitBtn.innerHTML;
+      submitBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Saving...`;
 
-      DB.saveMember(member);
-      closeModal();
-      this.render();
+      // Read values
+      const updateData = {
+        firstName: modal.querySelector('#edit-firstName').value.trim(),
+        lastName: modal.querySelector('#edit-lastName').value.trim(),
+        nickname: modal.querySelector('#edit-nickname').value.trim(),
+        role: modal.querySelector('#edit-role').value.trim(),
+        birthDate: modal.querySelector('#edit-birthDate').value,
+        birthPlace: modal.querySelector('#edit-birthPlace').value.trim(),
+        status: modal.querySelector('#edit-status').value,
+        deathDate: modal.querySelector('#edit-deathDate').value || null,
+        avatar: modal.querySelector('#edit-avatar').value.trim(),
+        biography: modal.querySelector('#edit-biography').value.trim(),
+        living: modal.querySelector('#edit-status').value === 'Living'
+      };
+
+      const fatherId = modal.querySelector('#edit-father').value || null;
+      const spouseId = modal.querySelector('#edit-spouse').value || null;
+
+      try {
+        // Save Updates using memberService
+        await memberService.updateMember(member.id, updateData);
+
+        // Update relationships if father changed
+        if (fatherId !== member.fatherId) {
+          const existingRels = await relationshipRepository.findAll();
+          const prevFatherRel = existingRels.find(r => r.relationshipType === "BIOLOGICAL_FATHER" && r.personB === member.id);
+          if (prevFatherRel) {
+            await relationshipService.removeRelationship(prevFatherRel.relationshipId);
+          }
+          if (fatherId) {
+            await relationshipService.addFather(member.id, fatherId);
+          }
+        }
+
+        // Update relationships if spouse changed
+        if (spouseId !== member.spouseId) {
+          const existingRels = await relationshipRepository.findAll();
+          const prevSpouseRel = existingRels.find(r => r.relationshipType === "SPOUSE" && r.status === "Current" && (r.personA === member.id || r.personB === member.id));
+          if (prevSpouseRel) {
+            await relationshipService.removeRelationship(prevSpouseRel.relationshipId);
+          }
+          if (spouseId) {
+            await relationshipService.addSpouse(member.id, spouseId);
+          }
+        }
+
+        closeModal();
+        await this.render();
+      } catch (error) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        alert(`Error: ${error.message}`);
+      }
     });
 
     // Delete Member
-    modal.querySelector('#delete-node-btn').addEventListener('click', () => {
+    modal.querySelector('#delete-node-btn').addEventListener('click', async () => {
       if (confirm(`Are you completely sure you want to delete ${member.firstName} ${member.lastName} and disconnect all relations?`)) {
-        DB.deleteMember(member.id);
-        closeModal();
-        this.render();
+        try {
+          await memberService.softDeleteMember(member.id);
+          closeModal();
+          await this.render();
+        } catch (error) {
+          alert(`Error: ${error.message}`);
+        }
       }
     });
   }
