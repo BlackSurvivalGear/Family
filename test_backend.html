@@ -51,6 +51,7 @@
     import * as timelineRepo from "./js/repositories/timelineRepository.js";
     import * as mediaRepo from "./js/repositories/mediaRepository.js";
     import * as docRepo from "./js/repositories/documentRepository.js";
+    import * as engine from "./js/genealogy/relationshipEngine.js";
 
     const resultsDiv = document.getElementById("results");
     const summaryDiv = document.getElementById("summary");
@@ -238,6 +239,139 @@
           console.log("Successfully blocked circular cycle:", e.message);
         }
         assert(threwCycleError, "relationshipRepo.create rejects circular parent-child loop.");
+
+        // =====================================================================
+        // 4. RELATIONSHIP ENGINE TESTS
+        // =====================================================================
+        console.log("Running Relationship Engine Tests...");
+
+        // Clear local storage and caches before starting engine-specific tests
+        localStorage.clear();
+
+        // 4.1 Single Spouse & Spouses
+        const husbandId = await familyRepo.create({ firstName: "Adeleke", lastName: "Lawal", gender: "Male", living: true });
+        const wifeId = await familyRepo.create({ firstName: "Kemi", lastName: "Lawal", gender: "Female", living: true });
+        await relRepo.create({ personA: husbandId, personB: wifeId, relationshipType: RELATIONSHIP_TYPES.SPOUSE, status: "Current" });
+
+        const currentSpouses = await engine.getCurrentSpouses(husbandId);
+        assert(currentSpouses.length === 1 && currentSpouses[0].firstName === "Kemi", "getCurrentSpouses retrieves correct current spouse.");
+
+        const relHusbandWife = await engine.findRelationship(husbandId, wifeId);
+        assert(relHusbandWife === "Current Spouse", "findRelationship correctly classifies Current Spouse.");
+
+        // 4.2 Multiple Spouses & Former Spouse
+        const exWifeId = await familyRepo.create({ firstName: "Fatima", lastName: "Bello", gender: "Female", living: true });
+        await relRepo.create({ personA: husbandId, personB: exWifeId, relationshipType: RELATIONSHIP_TYPES.FORMER_SPOUSE, status: "Past" });
+
+        const formerSpouses = await engine.getFormerSpouses(husbandId);
+        assert(formerSpouses.length === 1 && formerSpouses[0].firstName === "Fatima", "getFormerSpouses retrieves correct former spouse.");
+
+        const allSpouses = await engine.getSpouses(husbandId);
+        assert(allSpouses.length === 2, "getSpouses retrieves all spouses (current and former).");
+
+        const relHusbandExWife = await engine.findRelationship(husbandId, exWifeId);
+        assert(relHusbandExWife === "Former Spouse", "findRelationship correctly classifies Former Spouse.");
+
+        // 4.3 Step Families & Step Siblings
+        const sonOfHusbandId = await familyRepo.create({ firstName: "Tunde", lastName: "Lawal", gender: "Male", living: true });
+        const daughterOfWifeId = await familyRepo.create({ firstName: "Funmi", lastName: "Adele", gender: "Female", living: true });
+
+        // Bio parent-child relations
+        await relRepo.create({ personA: husbandId, personB: sonOfHusbandId, relationshipType: RELATIONSHIP_TYPES.BIOLOGICAL_FATHER });
+        await relRepo.create({ personA: wifeId, personB: daughterOfWifeId, relationshipType: RELATIONSHIP_TYPES.BIOLOGICAL_MOTHER });
+
+        // Step-parent relationships
+        await relRepo.create({ personA: wifeId, personB: sonOfHusbandId, relationshipType: RELATIONSHIP_TYPES.STEP_PARENT });
+        await relRepo.create({ personA: husbandId, personB: daughterOfWifeId, relationshipType: RELATIONSHIP_TYPES.STEP_PARENT });
+
+        const stepChildrenHusband = await engine.getStepChildren(husbandId);
+        assert(stepChildrenHusband.length === 1 && stepChildrenHusband[0].firstName === "Funmi", "getStepChildren retrieves step children.");
+
+        const relSonDaughter = await engine.findRelationship(sonOfHusbandId, daughterOfWifeId);
+        assert(relSonDaughter === "Step Brother", "findRelationship correctly identifies Step Brother.");
+
+        // 4.4 Half Siblings
+        const sharedChildId = await familyRepo.create({ firstName: "Damilola", lastName: "Lawal", gender: "Male", living: true });
+        await relRepo.create({ personA: husbandId, personB: sharedChildId, relationshipType: RELATIONSHIP_TYPES.BIOLOGICAL_FATHER });
+        await relRepo.create({ personA: wifeId, personB: sharedChildId, relationshipType: RELATIONSHIP_TYPES.BIOLOGICAL_MOTHER });
+
+        const sharedHalfSiblings = await engine.getHalfSiblings(sharedChildId);
+        assert(sharedHalfSiblings.length === 2, "getHalfSiblings retrieves correct half siblings.");
+
+        const relTundeDamilola = await engine.findRelationship(sonOfHusbandId, sharedChildId);
+        assert(relTundeDamilola === "Half Brother", "findRelationship correctly classifies Half Brother.");
+
+        // 4.5 Adoption
+        const adoptiveDadId = await familyRepo.create({ firstName: "Yusuf", lastName: "Lawal", gender: "Male", living: true });
+        const adoptedChildId = await familyRepo.create({ firstName: "Bola", lastName: "Lawal", gender: "Female", living: true });
+        await relRepo.create({ personA: adoptiveDadId, personB: adoptedChildId, relationshipType: RELATIONSHIP_TYPES.ADOPTIVE_PARENT });
+
+        const adoptedChildren = await engine.getAdoptedChildren(adoptiveDadId);
+        assert(adoptedChildren.length === 1 && adoptedChildren[0].firstName === "Bola", "getAdoptedChildren retrieves adopted child.");
+
+        const adoptiveParents = await engine.getAdoptiveParents(adoptedChildId);
+        assert(adoptiveParents.length === 1 && adoptiveParents[0].firstName === "Yusuf", "getAdoptiveParents retrieves adoptive parent.");
+
+        const relChildDad = await engine.findRelationship(adoptedChildId, adoptiveDadId);
+        assert(relChildDad === "Adopted Child", "findRelationship identifies Adopted Child.");
+
+        // 4.6 Deep Ancestry, Cousins, and Generations
+        const gGrandfatherId = await familyRepo.create({ firstName: "Alhaji-I", lastName: "Lawal", gender: "Male", living: false });
+        const grandfatherId = await familyRepo.create({ firstName: "Alhaji-II", lastName: "Lawal", gender: "Male", living: false });
+        const fatherId = await familyRepo.create({ firstName: "Kolawole", lastName: "Lawal", gender: "Male", living: true });
+        const childId = await familyRepo.create({ firstName: "Segun", lastName: "Lawal", gender: "Male", living: true });
+
+        const uncleId = await familyRepo.create({ firstName: "Taiwo", lastName: "Lawal", gender: "Male", living: true });
+        const firstCousinId = await familyRepo.create({ firstName: "Kehinde", lastName: "Lawal", gender: "Male", living: true });
+        const cousinOnceRemovedId = await familyRepo.create({ firstName: "Idowu", lastName: "Lawal", gender: "Female", living: true });
+
+        // Connect the ancestry chain
+        await relRepo.create({ personA: gGrandfatherId, personB: grandfatherId, relationshipType: RELATIONSHIP_TYPES.BIOLOGICAL_FATHER });
+        await relRepo.create({ personA: grandfatherId, personB: fatherId, relationshipType: RELATIONSHIP_TYPES.BIOLOGICAL_FATHER });
+        await relRepo.create({ personA: fatherId, personB: childId, relationshipType: RELATIONSHIP_TYPES.BIOLOGICAL_FATHER });
+
+        await relRepo.create({ personA: grandfatherId, personB: uncleId, relationshipType: RELATIONSHIP_TYPES.BIOLOGICAL_FATHER });
+        await relRepo.create({ personA: uncleId, personB: firstCousinId, relationshipType: RELATIONSHIP_TYPES.BIOLOGICAL_FATHER });
+        await relRepo.create({ personA: firstCousinId, personB: cousinOnceRemovedId, relationshipType: RELATIONSHIP_TYPES.BIOLOGICAL_FATHER });
+
+        // Assert Generations
+        const genGGrandfather = await engine.getGeneration(gGrandfatherId);
+        const genGrandfather = await engine.getGeneration(grandfatherId);
+        const genFather = await engine.getGeneration(fatherId);
+        const genChild = await engine.getGeneration(childId);
+        const genCousinOnceRemoved = await engine.getGeneration(cousinOnceRemovedId);
+
+        assert(genGGrandfather === 1, "getGeneration correctly calculates Alhaji-I as Generation 1.");
+        assert(genGrandfather === 2, "getGeneration correctly calculates Alhaji-II as Generation 2.");
+        assert(genFather === 3, "getGeneration correctly calculates Kolawole as Generation 3.");
+        assert(genChild === 4, "getGeneration correctly calculates Segun as Generation 4.");
+        assert(genCousinOnceRemoved === 5, "getGeneration correctly calculates Idowu as Generation 5.");
+
+        // Ancestor / Descendant queries
+        const isAnc = await engine.isAncestor(gGrandfatherId, childId);
+        const isDesc = await engine.isDescendant(childId, gGrandfatherId);
+        const isAncFalse = await engine.isAncestor(childId, gGrandfatherId);
+
+        assert(isAnc === true, "isAncestor correctly checks deep ancestry.");
+        assert(isDesc === true, "isDescendant correctly checks deep descendance.");
+        assert(isAncFalse === false, "isAncestor returns false for child being ancestor of grandparent.");
+
+        // Common Ancestor calculation
+        const nca = await engine.findCommonAncestor(childId, firstCousinId);
+        assert(nca !== null && nca.ancestor.firstName === "Alhaji-II", "findCommonAncestor finds correct shared grandfather.");
+
+        // Uncle, Nephew, Cousins, and Removal
+        const relUncleChild = await engine.findRelationship(uncleId, childId);
+        assert(relUncleChild === "Uncle", "findRelationship correctly identifies Uncle.");
+
+        const relChildUncle = await engine.findRelationship(childId, uncleId);
+        assert(relChildUncle === "Nephew", "findRelationship correctly identifies Nephew.");
+
+        const relCousin = await engine.findRelationship(firstCousinId, childId);
+        assert(relCousin === "First Cousin", "findRelationship correctly identifies First Cousin.");
+
+        const relCousinOnceRemoved = await engine.findRelationship(cousinOnceRemovedId, childId);
+        assert(relCousinOnceRemoved === "First Cousin once removed", "findRelationship correctly identifies First Cousin once removed.");
 
       } catch (err) {
         console.error("Test execution threw error:", err);

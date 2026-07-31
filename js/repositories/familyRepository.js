@@ -7,6 +7,7 @@ import { db, handleBackendError } from "../firebase/firebase.js";
 import { getCurrentUser } from "../firebase/auth.js";
 import { logAction } from "./auditLogRepository.js";
 import { validateMember } from "../validators/memberValidator.js";
+import { clearCache } from "../genealogy/relationshipCache.js";
 import {
   collection,
   doc,
@@ -70,6 +71,7 @@ export async function create(data) {
     if (db) {
       await setDoc(doc(db, COLLECTION_NAME, memberId), finalData);
       await logAction("CREATE", COLLECTION_NAME, memberId, null, finalData);
+      clearCache();
       return memberId;
     }
   } catch (error) {
@@ -81,6 +83,7 @@ export async function create(data) {
   members.push(finalData);
   saveLocalMembers(members);
   await logAction("CREATE", COLLECTION_NAME, memberId, null, finalData);
+  clearCache();
   return memberId;
 }
 
@@ -115,6 +118,7 @@ export async function update(id, updateData) {
       await updateDoc(docRef, finalUpdate);
       const updatedFull = { ...current, ...finalUpdate };
       await logAction("UPDATE", COLLECTION_NAME, id, current, updatedFull);
+      clearCache();
       return true;
     }
   } catch (error) {
@@ -129,6 +133,7 @@ export async function update(id, updateData) {
     members[idx] = updatedFull;
     saveLocalMembers(members);
     await logAction("UPDATE", COLLECTION_NAME, id, current, updatedFull);
+    clearCache();
     return true;
   }
   return false;
@@ -154,6 +159,7 @@ export async function deleteMember(id) {
       await updateDoc(docRef, finalUpdate);
       const updatedFull = { ...current, ...finalUpdate };
       await logAction("DELETE", COLLECTION_NAME, id, current, updatedFull);
+      clearCache();
       return true;
     }
   } catch (error) {
@@ -169,6 +175,7 @@ export async function deleteMember(id) {
     members[idx] = updatedFull;
     saveLocalMembers(members);
     await logAction("DELETE", COLLECTION_NAME, id, current, updatedFull);
+    clearCache();
     return true;
   }
   return false;

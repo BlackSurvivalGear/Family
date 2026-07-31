@@ -7,6 +7,7 @@ import { db, handleBackendError } from "../firebase/firebase.js";
 import { getCurrentUser } from "../firebase/auth.js";
 import { logAction } from "./auditLogRepository.js";
 import { validateRelationship, detectCircularAncestry, getParentChild } from "../validators/relationshipValidator.js";
+import { clearCache } from "../genealogy/relationshipCache.js";
 import {
   collection,
   doc,
@@ -79,6 +80,7 @@ export async function create(data) {
     if (db) {
       await setDoc(doc(db, COLLECTION_NAME, relationshipId), finalData);
       await logAction("CREATE", COLLECTION_NAME, relationshipId, null, finalData);
+      clearCache();
       return relationshipId;
     }
   } catch (error) {
@@ -90,6 +92,7 @@ export async function create(data) {
   rels.push(finalData);
   saveLocalRelationships(rels);
   await logAction("CREATE", COLLECTION_NAME, relationshipId, null, finalData);
+  clearCache();
   return relationshipId;
 }
 
@@ -136,6 +139,7 @@ export async function update(id, updateData) {
       await updateDoc(docRef, finalUpdate);
       const updatedFull = { ...current, ...finalUpdate };
       await logAction("UPDATE", COLLECTION_NAME, id, current, updatedFull);
+      clearCache();
       return true;
     }
   } catch (error) {
@@ -150,6 +154,7 @@ export async function update(id, updateData) {
     rels[idx] = updatedFull;
     saveLocalRelationships(rels);
     await logAction("UPDATE", COLLECTION_NAME, id, current, updatedFull);
+    clearCache();
     return true;
   }
   return false;
@@ -172,6 +177,7 @@ export async function deleteRelationship(id) {
       const docRef = doc(db, COLLECTION_NAME, id);
       await deleteDoc(docRef);
       await logAction("DELETE", COLLECTION_NAME, id, current, null);
+      clearCache();
       return true;
     }
   } catch (error) {
@@ -183,6 +189,7 @@ export async function deleteRelationship(id) {
   const filtered = rels.filter(r => r.relationshipId !== id);
   saveLocalRelationships(filtered);
   await logAction("DELETE", COLLECTION_NAME, id, current, null);
+  clearCache();
   return true;
 }
 
