@@ -36,7 +36,7 @@
     <div id="header-container"></div>
 
     <!-- Main Workspace profile workspace -->
-    <main class="flex-grow p-6 md:p-8 flex flex-col gap-8 max-w-7xl mx-auto w-full">
+    <main class="flex-grow p-6 md:p-8 flex flex-col gap-8 max-w-5xl mx-auto w-full">
 
       <!-- Back button and layout headline -->
       <div class="flex items-center justify-between border-b border-white/5 pb-4">
@@ -54,7 +54,7 @@
       </div>
 
       <!-- MEMBER DETAILS CORE PROFILE CARD -->
-      <section class="glass-panel p-6 md:p-8 rounded-3xl border border-white/10 flex flex-col sm:flex-row items-center gap-6 relative overflow-hidden shadow-2xl animate-fade-in">
+      <section class="glass-panel p-6 md:p-8 rounded-3xl border border-white/10 flex flex-col sm:flex-row items-center gap-6 relative overflow-hidden shadow-2xl animate-fade-in text-left">
         <!-- Glow pattern -->
         <div class="absolute -right-20 -top-20 w-80 h-80 bg-gold/5 rounded-full blur-[100px] pointer-events-none"></div>
 
@@ -63,6 +63,7 @@
           <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
             <h1 class="font-serif text-2xl md:text-3xl font-bold text-white tracking-wide" id="m-fullName">--</h1>
             <span class="text-xs font-semibold bg-gold/15 text-gold border border-gold/25 px-2.5 py-0.5 rounded-full" id="m-generation">Gen --</span>
+            <span id="adopt-badge-container"></span>
           </div>
           <p class="text-xs text-slate-400 font-light max-w-xl" id="m-role">--</p>
           <div class="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-slate-500 mt-2 font-light">
@@ -73,42 +74,47 @@
         </div>
       </section>
 
-      <!-- TWO-COLUMN DETAILED CHRONICLES GRID -->
-      <section class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <!-- TWO-COLUMN DETAILED COLLAPSIBLE ACCORDION CHRONICLES GRID -->
+      <section class="grid grid-cols-1 lg:grid-cols-12 gap-8 text-left">
 
         <!-- Left Side: Demographics, relationships & links (4 cols) -->
         <div class="lg:col-span-4 flex flex-col gap-6">
 
-          <!-- Relationships Tree node connections -->
+          <!-- Accordion 1: Relationships Tree node connections -->
           <div class="glass-panel border border-white/5 rounded-2xl p-5 flex flex-col gap-4">
-            <span class="text-xs font-serif font-bold text-white uppercase tracking-wider flex items-center gap-2 border-b border-white/5 pb-2">
-              <i class="fa-solid fa-diagram-project text-gold"></i> Relational Links
-            </span>
-            <div class="flex flex-col gap-3" id="relations-list">
-              <!-- Dynamically populated links -->
+            <button class="accordion-header w-full text-xs font-serif font-bold text-white uppercase tracking-wider flex items-center justify-between pb-2 border-b border-white/5" data-target="accordion-relations">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-diagram-project text-gold"></i> Relational Links</span>
+              <i class="fa-solid fa-chevron-up transition-transform duration-200"></i>
+            </button>
+            <div id="accordion-relations" class="accordion-content flex flex-col gap-3 transition-all duration-300 overflow-hidden">
+              <div class="flex flex-col gap-3" id="relations-list">
+                <!-- Dynamically populated links -->
+              </div>
             </div>
           </div>
 
-          <!-- Demographic Stats Panel -->
+          <!-- Accordion 2: Demographic Stats Panel -->
           <div class="glass-panel border border-white/5 rounded-2xl p-5 flex flex-col gap-4">
-            <span class="text-xs font-serif font-bold text-white uppercase tracking-wider flex items-center gap-2 border-b border-white/5 pb-2">
-              <i class="fa-solid fa-fingerprint text-emerald"></i> Identity Details
-            </span>
-            <div class="flex flex-col gap-3 text-xs">
+            <button class="accordion-header w-full text-xs font-serif font-bold text-white uppercase tracking-wider flex items-center justify-between pb-2 border-b border-white/5" data-target="accordion-identity">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-fingerprint text-emerald"></i> Identity Details</span>
+              <i class="fa-solid fa-chevron-up transition-transform duration-200"></i>
+            </button>
+            <div id="accordion-identity" class="accordion-content flex flex-col gap-3 text-xs transition-all duration-300 overflow-hidden">
               <div class="flex justify-between py-1 border-b border-white/5 font-light"><span class="text-slate-500">Nickname:</span> <span class="text-white font-medium" id="det-nickname">--</span></div>
               <div class="flex justify-between py-1 border-b border-white/5 font-light"><span class="text-slate-500">Gender:</span> <span class="text-white font-medium" id="det-gender">--</span></div>
               <div class="flex justify-between py-1 border-b border-white/5 font-light"><span class="text-slate-500">Place of Birth:</span> <span class="text-white font-medium text-right truncate max-w-[200px]" id="det-birthplace">--</span></div>
-              <div class="flex justify-between py-1 border-b border-white/5 font-light"><span class="text-slate-500">Military Service:</span> <span class="text-white font-medium" id="det-military">--</span></div>
+              <div class="flex justify-between py-1 border-b border-white/5 font-light"><span class="text-slate-500">Military Service:</span> <span class="text-white font-medium text-right truncate" id="det-military">--</span></div>
               <div class="flex justify-between py-1 border-b border-white/5 font-light"><span class="text-slate-500">Languages:</span> <span class="text-white font-medium" id="det-languages">--</span></div>
             </div>
           </div>
 
-          <!-- Personal favorites and Hobbies -->
+          <!-- Accordion 3: Personal favorites and Hobbies -->
           <div class="glass-panel border border-white/5 rounded-2xl p-5 flex flex-col gap-4">
-            <span class="text-xs font-serif font-bold text-white uppercase tracking-wider flex items-center gap-2 border-b border-white/5 pb-2">
-              <i class="fa-solid fa-heart text-gold"></i> Favorites & Hobbies
-            </span>
-            <div class="flex flex-col gap-3 text-xs font-light">
+            <button class="accordion-header w-full text-xs font-serif font-bold text-white uppercase tracking-wider flex items-center justify-between pb-2 border-b border-white/5" data-target="accordion-favorites">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-heart text-gold"></i> Favorites & Hobbies</span>
+              <i class="fa-solid fa-chevron-up transition-transform duration-200"></i>
+            </button>
+            <div id="accordion-favorites" class="accordion-content flex flex-col gap-3 text-xs font-light transition-all duration-300 overflow-hidden">
               <div><span class="text-slate-500 block uppercase text-[10px] font-semibold">Hobbies & Interests:</span> <p class="text-slate-200 mt-1" id="det-hobbies">--</p></div>
               <div class="border-t border-white/5 pt-2"><span class="text-slate-500 block uppercase text-[10px] font-semibold">Favourite Books:</span> <p class="text-slate-200 mt-1 italic" id="det-books">--</p></div>
               <div class="border-t border-white/5 pt-2"><span class="text-slate-500 block uppercase text-[10px] font-semibold">Favourite Music:</span> <p class="text-slate-200 mt-1" id="det-music">--</p></div>
@@ -121,23 +127,26 @@
         <!-- Right Side: Biography, Timelines & Documents (8 cols) -->
         <div class="lg:col-span-8 flex flex-col gap-6">
 
-          <!-- Biography Chronicle Block -->
-          <div class="glass-panel border border-white/5 rounded-2xl p-6 flex flex-col gap-3.5 text-left">
-            <span class="text-xs font-serif font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <i class="fa-solid fa-feather-pointed text-gold"></i> The Family Chronicle Story
-            </span>
-            <div class="w-12 h-[1px] bg-gold/40"></div>
-            <p class="text-xs md:text-sm text-slate-300 font-light leading-relaxed whitespace-pre-wrap" id="det-biography">
-              --
-            </p>
+          <!-- Accordion 4: Biography Chronicle Block -->
+          <div class="glass-panel border border-white/5 rounded-2xl p-6 flex flex-col gap-4">
+            <button class="accordion-header w-full text-xs font-serif font-bold text-white uppercase tracking-wider flex items-center justify-between pb-2 border-b border-white/5" data-target="accordion-biography">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-feather-pointed text-gold"></i> The Family Chronicle Story</span>
+              <i class="fa-solid fa-chevron-up transition-transform duration-200"></i>
+            </button>
+            <div id="accordion-biography" class="accordion-content flex flex-col gap-3.5 transition-all duration-300 overflow-hidden pt-2">
+              <p class="text-xs md:text-sm text-slate-300 font-light leading-relaxed whitespace-pre-wrap" id="det-biography">
+                --
+              </p>
+            </div>
           </div>
 
-          <!-- Academic & Career Background details -->
+          <!-- Accordion 5: Academic & Career Background details -->
           <div class="glass-panel border border-white/5 rounded-2xl p-6 flex flex-col gap-4">
-            <span class="text-xs font-serif font-bold text-white uppercase tracking-wider flex items-center gap-2 border-b border-white/5 pb-2">
-              <i class="fa-solid fa-graduation-cap text-emerald"></i> Academic & Career Footprints
-            </span>
-            <div class="grid sm:grid-cols-2 gap-6 text-xs text-left">
+            <button class="accordion-header w-full text-xs font-serif font-bold text-white uppercase tracking-wider flex items-center justify-between pb-2 border-b border-white/5" data-target="accordion-education">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-graduation-cap text-emerald"></i> Academic & Career Footprints</span>
+              <i class="fa-solid fa-chevron-up transition-transform duration-200"></i>
+            </button>
+            <div id="accordion-education" class="accordion-content grid sm:grid-cols-2 gap-6 text-xs transition-all duration-300 overflow-hidden pt-2">
               <div>
                 <span class="text-slate-500 block uppercase text-[10px] font-semibold mb-1">Education Background</span>
                 <p class="text-slate-300 leading-relaxed font-light" id="det-education">--</p>
@@ -149,33 +158,42 @@
             </div>
           </div>
 
-          <!-- Timeline milestones events section -->
+          <!-- Accordion 6: Timeline milestones events section -->
           <div class="glass-panel border border-white/5 rounded-2xl p-6 flex flex-col gap-4">
-            <span class="text-xs font-serif font-bold text-white uppercase tracking-wider flex items-center gap-2 border-b border-white/5 pb-2">
-              <i class="fa-solid fa-clock-rotate-left text-gold"></i> Chronological Milestones
-            </span>
-            <div class="flex flex-col gap-4" id="milestones-timeline">
-              <!-- Dynamically populated nodes -->
+            <button class="accordion-header w-full text-xs font-serif font-bold text-white uppercase tracking-wider flex items-center justify-between pb-2 border-b border-white/5" data-target="accordion-timeline">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-gold"></i> Chronological Milestones</span>
+              <i class="fa-solid fa-chevron-up transition-transform duration-200"></i>
+            </button>
+            <div id="accordion-timeline" class="accordion-content flex flex-col gap-4 transition-all duration-300 overflow-hidden pt-2">
+              <div class="flex flex-col gap-4" id="milestones-timeline">
+                <!-- Dynamically populated nodes -->
+              </div>
             </div>
           </div>
 
-          <!-- Photo gallery albums, videos, attached documents link -->
+          <!-- Accordion 7: Photo gallery albums, videos, attached documents link -->
           <div class="glass-panel border border-white/5 rounded-2xl p-6 flex flex-col gap-4">
-            <span class="text-xs font-serif font-bold text-white uppercase tracking-wider flex items-center gap-2 border-b border-white/5 pb-2">
-              <i class="fa-solid fa-paperclip text-emerald"></i> Attached Documents & Media Vault
-            </span>
-            <div class="grid sm:grid-cols-2 gap-4 text-xs" id="media-vault-grid">
-              <!-- Populated via JS -->
+            <button class="accordion-header w-full text-xs font-serif font-bold text-white uppercase tracking-wider flex items-center justify-between pb-2 border-b border-white/5" data-target="accordion-media">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-paperclip text-emerald"></i> Attached Documents & Media Vault</span>
+              <i class="fa-solid fa-chevron-up transition-transform duration-200"></i>
+            </button>
+            <div id="accordion-media" class="accordion-content grid sm:grid-cols-2 gap-4 text-xs transition-all duration-300 overflow-hidden pt-2">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 col-span-2 w-full" id="media-vault-grid">
+                <!-- Populated via JS -->
+              </div>
             </div>
           </div>
 
-          <!-- Notes, audio recordings and stories -->
-          <div class="glass-panel border border-white/5 rounded-2xl p-6 flex flex-col gap-3.5">
-            <span class="text-xs font-serif font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <i class="fa-solid fa-note-sticky text-gold"></i> Personal Legacy Notes & Oral Stories
-            </span>
-            <div class="p-4 bg-slate-950 rounded-xl border border-white/5 text-xs text-slate-400 font-light leading-relaxed text-left">
-              "This digital chronicle contains sensitive family documentation. Verify all historical claims with generation heads before modifying notes. Future integrations will support direct voice-recordings uploads to Google Cloud."
+          <!-- Accordion 8: Notes, audio recordings and stories -->
+          <div class="glass-panel border border-white/5 rounded-2xl p-6 flex flex-col gap-4">
+            <button class="accordion-header w-full text-xs font-serif font-bold text-white uppercase tracking-wider flex items-center justify-between pb-2" data-target="accordion-legacy-notes">
+              <span class="flex items-center gap-2"><i class="fa-solid fa-note-sticky text-gold"></i> Personal Legacy Notes & Oral Stories</span>
+              <i class="fa-solid fa-chevron-up transition-transform duration-200"></i>
+            </button>
+            <div id="accordion-legacy-notes" class="accordion-content transition-all duration-300 overflow-hidden">
+              <div class="p-4 bg-slate-950 rounded-xl border border-white/5 text-xs text-slate-400 font-light leading-relaxed text-left mt-2">
+                "This digital chronicle contains sensitive family documentation. Verify all historical claims with generation heads before modifying notes. Future integrations will support direct voice-recordings uploads to Google Cloud."
+              </div>
             </div>
           </div>
 

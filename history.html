@@ -47,7 +47,7 @@
       <!-- INTRO SECTION: ORIGINS & EMERALD ACCENTS -->
       <section class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
         <!-- Text details -->
-        <div class="lg:col-span-7 flex flex-col gap-5 text-left">
+        <div class="lg:col-span-6 flex flex-col gap-5 text-left">
           <div class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gold">
             <i class="fa-solid fa-landmark"></i> Egba Land Heritage
           </div>
@@ -59,8 +59,9 @@
             It is from these Egba roots that our founding patriarch, Alhaji Kolawole Lawal, acquired his passion for structural sciences, paving the path of corporate enterprise and civil development that solidifies the Lawal dynasty.
           </p>
         </div>
+
         <!-- Graphic image representation -->
-        <div class="lg:col-span-5 relative h-64 rounded-3xl overflow-hidden border border-white/10">
+        <div class="lg:col-span-6 relative h-64 rounded-3xl overflow-hidden border border-white/10">
           <img
             src="https://images.unsplash.com/photo-1542037104857-ffbb0b9155fb?auto=format&fit=crop&w=600&q=80"
             alt="Olumo Rock Abeokuta"
@@ -73,10 +74,106 @@
         </div>
       </section>
 
+      <!-- INTERACTIVE PREMIUM WORLD MIGRATION MAP -->
+      <section class="flex flex-col gap-5">
+        <div class="pb-2 border-b border-white/5 flex items-center justify-between">
+          <h2 class="font-serif text-lg font-semibold text-white tracking-wide flex items-center gap-2">
+            <i class="fa-solid fa-map-location-dot text-emerald"></i> Global Migration & Roots Map
+          </h2>
+          <span class="text-[10px] text-slate-400 uppercase tracking-widest bg-emerald/10 text-emerald px-2.5 py-0.5 border border-emerald/15 rounded-full font-bold">Interactive Nodes</span>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 items-stretch">
+          <!-- Left side: Map representation (3 cols) -->
+          <div class="lg:col-span-3 glass-panel border border-white/5 rounded-3xl p-4 min-h-[350px] relative overflow-hidden flex items-center justify-center bg-slate-900/40">
+            <!-- Simulated interactive Vector Map representation inside premium layout -->
+            <svg viewBox="0 0 1000 500" class="w-full h-full max-h-[420px] select-none text-slate-800">
+              <!-- Grid borders representation -->
+              <path d="M 0 100 L 1000 100 M 0 250 L 1000 250 M 0 400 L 1000 400 M 200 0 L 200 500 M 500 0 L 500 500 M 800 0 L 800 500" stroke="rgba(255,255,255,0.02)" stroke-width="1" />
+
+              <!-- Draw World continents paths simplified -->
+              <path d="M 120 120 Q 180 80 250 150 T 200 300 T 150 420 Q 250 480 300 450 T 320 300 Z" fill="rgba(255,255,255,0.015)" stroke="rgba(255,255,255,0.03)" stroke-width="1.5" /> <!-- Americas -->
+              <path d="M 450 100 Q 550 50 650 80 T 700 200 Q 550 220 480 180 Z" fill="rgba(255,255,255,0.015)" stroke="rgba(255,255,255,0.03)" stroke-width="1.5" /> <!-- Eurasia -->
+              <path d="M 460 220 Q 580 240 600 320 T 520 460 Q 480 460 450 380 Z" fill="rgba(255,255,255,0.025)" stroke="rgba(255,255,255,0.05)" stroke-width="1.5" /> <!-- Africa -->
+
+              <!-- Dotted line tracks representing migration paths -->
+              <!-- Abeokuta (500,280) to London (480,120) -->
+              <path class="migration-path" d="M 500 280 Q 460 190 480 120" stroke="#D4AF37" stroke-dasharray="6,6" stroke-width="2" fill="none" opacity="0.6"/>
+              <!-- Lagos (510,295) to New York (220,160) -->
+              <path class="migration-path" d="M 510 295 Q 360 230 220 160" stroke="#10B981" stroke-dasharray="6,6" stroke-width="2" fill="none" opacity="0.6"/>
+
+              <!-- Map Interactive location markers pins -->
+              <!-- Abeokuta -->
+              <g class="cursor-pointer map-marker" data-loc="abeokuta">
+                <circle cx="500" cy="280" r="14" fill="rgba(212,175,55,0.15)" />
+                <circle cx="500" cy="280" r="6" fill="#D4AF37" />
+                <circle cx="500" cy="280" r="2" fill="#0B0F17" />
+              </g>
+              <!-- Lagos -->
+              <g class="cursor-pointer map-marker" data-loc="lagos">
+                <circle cx="510" cy="295" r="14" fill="rgba(16,185,129,0.15)" />
+                <circle cx="510" cy="295" r="6" fill="#10B981" />
+                <circle cx="510" cy="295" r="2" fill="#0B0F17" />
+              </g>
+              <!-- London -->
+              <g class="cursor-pointer map-marker" data-loc="london">
+                <circle cx="480" cy="120" r="14" fill="rgba(212,175,55,0.15)" />
+                <circle cx="480" cy="120" r="6" fill="#D4AF37" />
+                <circle cx="480" cy="120" r="2" fill="#0B0F17" />
+              </g>
+              <!-- New York -->
+              <g class="cursor-pointer map-marker" data-loc="newyork">
+                <circle cx="220" cy="160" r="14" fill="rgba(16,185,129,0.15)" />
+                <circle cx="220" cy="160" r="6" fill="#10B981" />
+                <circle cx="220" cy="160" r="2" fill="#0B0F17" />
+              </g>
+
+              <!-- Markers names -->
+              <text x="515" y="278" fill="#FFFFFF" font-size="10" font-family="var(--font-serif)" font-weight="bold">Abeokuta</text>
+              <text x="525" y="303" fill="#10B981" font-size="10" font-family="var(--font-serif)" font-weight="bold">Lagos Hub</text>
+              <text x="495" y="118" fill="#FFFFFF" font-size="10" font-family="var(--font-serif)" font-weight="bold">London</text>
+              <text x="235" y="158" fill="#10B981" font-size="10" font-family="var(--font-serif)" font-weight="bold">New York</text>
+            </svg>
+
+            <div class="absolute bottom-4 right-4 bg-slate-950/80 backdrop-blur-md p-3 border border-white/5 rounded-xl text-[9px] text-slate-400 leading-normal flex flex-col gap-1 text-left">
+              <span class="font-bold text-white uppercase tracking-wider mb-0.5">Map Navigation Panel</span>
+              <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 bg-gold rounded-full"></span> Click on markers for histories details</span>
+              <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 bg-emerald rounded-full"></span> Highlighted pathways represent migrations</span>
+            </div>
+          </div>
+
+          <!-- Right side: Marker Information detail card (1 col) -->
+          <div class="lg:col-span-1 glass-panel border border-white/5 rounded-3xl p-5 flex flex-col justify-between text-left h-full">
+            <div class="flex flex-col gap-4">
+              <span class="text-[9px] uppercase tracking-widest font-extrabold text-slate-500 block border-b border-white/5 pb-2">Active Coordinates</span>
+
+              <div id="map-info-content" class="flex flex-col gap-3.5 animate-fade-in">
+                <!-- Dynamically filled on marker hover/click -->
+                <h3 class="font-serif text-sm font-bold text-gold">Abeokuta, Nigeria</h3>
+                <span class="text-[9px] uppercase tracking-wider bg-gold/15 text-gold px-2 py-0.5 rounded border border-gold/10 font-bold w-max">The Core Cradle</span>
+                <p class="text-xs text-slate-300 font-light leading-relaxed">
+                  Birthplace of late Patriarch Alhaji Kolawole Lawal in 1940. Nestled underneath the historic Olumo Rock, our Egba ancestors traded scholarly insights and cotton craft.
+                </p>
+                <div class="text-[10px] text-slate-500 font-light mt-2 flex flex-col gap-1.5">
+                  <span class="flex items-center gap-1.5"><i class="fa-solid fa-users text-gold"></i> Seed Patriarch: Kolawole</span>
+                  <span class="flex items-center gap-1.5"><i class="fa-solid fa-calendar"></i> Established: 1890s</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="border-t border-white/5 pt-4 mt-4">
+              <a href="members.html" class="h-9 bg-white/5 hover:bg-gold hover:text-slate-950 text-[10px] tracking-wider uppercase font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all">
+                <i class="fa-solid fa-earth-africa"></i> See Branch Members
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- SECT 2: GLOBAL MIGRATION & BRANCHES -->
       <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <!-- Branch 1 -->
-        <div class="glass-panel p-6 rounded-2xl border border-white/5 hover:border-gold/20 transition-all flex flex-col gap-3">
+        <div class="glass-panel p-6 rounded-2xl border border-white/5 hover:border-gold/20 transition-all flex flex-col gap-3 text-left">
           <span class="text-[10px] uppercase tracking-wider font-bold text-gold flex items-center gap-1.5">
             <i class="fa-solid fa-plane-departure"></i> Lagos Consolidation
           </span>
@@ -86,7 +183,7 @@
           </p>
         </div>
         <!-- Branch 2 -->
-        <div class="glass-panel p-6 rounded-2xl border border-white/5 hover:border-gold/20 transition-all flex flex-col gap-3">
+        <div class="glass-panel p-6 rounded-2xl border border-white/5 hover:border-gold/20 transition-all flex flex-col gap-3 text-left">
           <span class="text-[10px] uppercase tracking-wider font-bold text-gold flex items-center gap-1.5">
             <i class="fa-solid fa-plane-arrival"></i> London Transatlantic
           </span>
@@ -96,7 +193,7 @@
           </p>
         </div>
         <!-- Branch 3 -->
-        <div class="glass-panel p-6 rounded-2xl border border-white/5 hover:border-gold/20 transition-all flex flex-col gap-3">
+        <div class="glass-panel p-6 rounded-2xl border border-white/5 hover:border-gold/20 transition-all flex flex-col gap-3 text-left">
           <span class="text-[10px] uppercase tracking-wider font-bold text-gold flex items-center gap-1.5">
             <i class="fa-solid fa-globe"></i> USA & Capital Expansion
           </span>

@@ -1,22 +1,29 @@
 import { DB } from './db.js';
 
 // Global variables for canvas states
-let transformX = -1000;
-let transformY = -100;
-let scale = 0.85;
+let transformX = -1300;
+let transformY = -50;
+let scale = 0.75;
 let isDragging = false;
 let startX = 0;
 let startY = 0;
 
+// Tracking highlighted node id & categories
+let activeSelectedNodeId = null;
+
 // Tracking collapsed state of nodes by relative ID
-// If collapsed, their descendants are not rendered
 const collapsedNodes = new Set();
 
 export class Tree {
   static init() {
     DB.init();
 
-    // Bind Canvas Dragging
+    // Check query params for initial action
+    const urlParams = new URLSearchParams(window.location.search);
+    const focusId = urlParams.get('id');
+    const triggerEdit = urlParams.get('edit') === 'true';
+
+    // Bind Canvas Dragging, Touch gestures, keyboard events
     this.bindCanvasControls();
 
     // Render the initial tree
@@ -30,6 +37,17 @@ export class Tree {
 
     // Bind Add Member global trigger button
     this.bindAddMemberControls();
+
+    // Focus if requested
+    if (focusId) {
+      setTimeout(() => {
+        this.centerOnMember(focusId);
+        if (triggerEdit) {
+          const matched = DB.getMember(focusId);
+          if (matched) this.openEditModal(matched);
+        }
+      }, 500);
+    }
 
     // Bind window resize
     window.addEventListener('resize', () => {
@@ -65,7 +83,7 @@ export class Tree {
               </div>
               <div>
                 <h3 class="text-base font-serif font-bold text-white">Add New Family Node</h3>
-                <p class="text-[10px] text-slate-500">Insert details and connect them directly to the generations tree.</p>
+                <p class="text-[10px] text-slate-500 font-light">Insert details and connect them directly to the generations tree.</p>
               </div>
             </div>
             <button id="close-add-modal-btn" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
@@ -120,7 +138,6 @@ export class Tree {
               </div>
             </div>
 
-            <!-- Avatar & Media link placeholders -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="flex flex-col gap-1.5">
                 <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Photo URL (Placeholder)</label>
@@ -132,7 +149,6 @@ export class Tree {
               </div>
             </div>
 
-            <!-- Chronology / Biography -->
             <div class="flex flex-col gap-1.5">
               <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Biography Teaser</label>
               <textarea id="add-biography" rows="3" placeholder="Brief chronicle story..." class="p-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold resize-none"></textarea>
@@ -159,7 +175,7 @@ export class Tree {
                   </select>
                 </div>
                 <div class="flex flex-col gap-1.5">
-                  <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Spouse Link</label>
+                  <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Primary Spouse Link</label>
                   <select id="add-spouse" class="h-10 px-2 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold">
                     <option value="">-- None --</option>
                     ${spouses.map(s => `<option value="${s.id}">${s.firstName} ${s.lastName}</option>`).join('')}
@@ -219,6 +235,7 @@ export class Tree {
           fatherId,
           motherId,
           spouseId,
+          spouses: spouseId ? [{ id: spouseId, type: "current", label: "Spouse" }] : [],
           education: { university: "Awaiting inputs" },
           timeline: []
         };
@@ -230,6 +247,8 @@ export class Tree {
           const partner = DB.getMember(spouseId);
           if (partner) {
             partner.spouseId = added.id;
+            if (!partner.spouses) partner.spouses = [];
+            partner.spouses.push({ id: added.id, type: "current", label: "Spouse" });
             DB.saveMember(partner);
           }
         }
@@ -250,7 +269,7 @@ export class Tree {
     // 1. Calculate horizontal/vertical grid offsets for each member
     const coordinates = this.calculateTreeLayout(members);
 
-    // Save for drawing lines
+    // Save coordinates
     this.coordinates = coordinates;
 
     // Filter out descendants of collapsed nodes
@@ -275,12 +294,13 @@ export class Tree {
     this.updateBreadcrumbs();
   }
 
-  // Layout Engine mapping generation & spouses to X,Y positions
+  // layout math mapping generation & sequential horizontal placements
   static calculateTreeLayout(members) {
     const coords = {};
-    const genHeight = 360;
+    const genHeight = 380;
     const cardWidth = 260;
-    const cardSpacing = 110;
+    const cardSpacing = 120;
+    const centerX = 2500;
 
     // Group members by Generation
     const gens = {};
@@ -290,35 +310,38 @@ export class Tree {
       gens[g].push(m);
     });
 
-    // Sort individuals to align spouses together and keep branch structures tidy
+    // Sort individuals: Group multi-spouses sequentially together next to core person
     Object.keys(gens).forEach(g => {
       const list = gens[g];
       const sorted = [];
       const visited = new Set();
 
-      // Pair up spouses
       list.forEach(m => {
         if (visited.has(m.id)) return;
 
         sorted.push(m);
         visited.add(m.id);
 
-        if (m.spouseId) {
-          const spouse = list.find(s => s.id === m.spouseId);
+        // Find any other spouses (from multi-spouse list or spouseId)
+        const allSpouseIds = new Set();
+        if (m.spouseId) allSpouseIds.add(m.spouseId);
+        if (m.spouses) {
+          m.spouses.forEach(sp => allSpouseIds.add(sp.id));
+        }
+
+        allSpouseIds.forEach(spId => {
+          const spouse = list.find(s => s.id === spId);
           if (spouse && !visited.has(spouse.id)) {
             sorted.push(spouse);
             visited.add(spouse.id);
           }
-        }
+        });
       });
 
       gens[g] = sorted;
     });
 
-    // Assign positions
-    // Let's center everything around middle horizontal point 2500px
-    const centerX = 2500;
-
+    // Assign dynamic non-overlapping horizontal coordinates
     Object.keys(gens).forEach(g => {
       const level = parseInt(g);
       const list = gens[g];
@@ -327,10 +350,15 @@ export class Tree {
 
       let currentX = startX;
       list.forEach((m, idx) => {
-        // Adjust spacing for spouses to keep them closer together
-        if (idx > 0 && list[idx - 1].spouseId === m.id) {
-          // Spouse: pull closer
-          currentX -= (cardSpacing - 30);
+        // Multi-spouse visual adjustments: if they are spouses, lock their positions closer
+        const isSpouseOfPrev = idx > 0 && (
+          list[idx - 1].spouseId === m.id ||
+          (list[idx - 1].spouses && list[idx - 1].spouses.some(sp => sp.id === m.id))
+        );
+
+        if (isSpouseOfPrev) {
+          // Pull closer horizontally to create marital pair layouts
+          currentX -= (cardSpacing - 40);
         }
 
         coords[m.id] = {
@@ -374,25 +402,36 @@ export class Tree {
     return visible;
   }
 
-  // HTML card generation with status indicators, color borders, and action icons
+  // HTML premium card generation with visual vitals status and interactions
   static createMemberCard(member, coord) {
     const div = document.createElement('div');
-    div.className = 'absolute w-[260px] glass-panel rounded-2xl border-2 transition-all p-4 flex flex-col gap-3 group text-left shadow-lg';
+    div.className = 'absolute w-[260px] glass-panel rounded-3xl border-2 transition-all p-4.5 flex flex-col gap-3 group text-left shadow-lg cursor-pointer hover:scale-[1.03] duration-300';
     div.style.left = `${coord.x}px`;
     div.style.top = `${coord.y}px`;
     div.style.zIndex = '10';
     div.id = `tree-card-${member.id}`;
+
+    // Apply specific classes if matches highlighted search/highlight relationships
+    if (activeSelectedNodeId) {
+      if (member.id === activeSelectedNodeId) {
+        div.className += ' ring-4 ring-gold border-gold scale-105';
+      } else if (this.isRelated(member.id, activeSelectedNodeId)) {
+        div.className += ' ring-2 ring-emerald/40 border-emerald scale-[1.01]';
+      } else {
+        div.className += ' opacity-40';
+      }
+    }
 
     // Gender styling
     const isMale = member.gender === 'Male';
     const genderBorder = isMale ? 'border-blue-500/20 hover:border-blue-500' : 'border-pink-500/20 hover:border-pink-500';
     div.className += ` ${genderBorder}`;
 
-    // Living/Deceased status pill
+    // Living/Deceased status pill with glowing dot
     const isLiving = member.status === 'Living';
     const statusPill = isLiving
-      ? '<span class="px-2 py-0.5 rounded-full bg-emerald/10 text-emerald text-[9px] font-semibold border border-emerald/20 flex items-center gap-1 shrink-0"><span class="w-1 h-1 bg-emerald rounded-full"></span> Living</span>'
-      : '<span class="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[9px] font-semibold border border-slate-700 flex items-center gap-1 shrink-0"><span class="w-1 h-1 bg-slate-500 rounded-full"></span> Deceased</span>';
+      ? '<span class="px-2.5 py-0.5 rounded-full bg-emerald/10 text-emerald text-[9px] font-bold border border-emerald/20 flex items-center gap-1 shrink-0"><span class="w-1.5 h-1.5 bg-emerald rounded-full animate-pulse"></span> Living</span>'
+      : '<span class="px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[9px] font-bold border border-slate-700 flex items-center gap-1 shrink-0"><span class="w-1.5 h-1.5 bg-slate-500 rounded-full"></span> Deceased</span>';
 
     // Collapse toggle indicator if has children
     const allMembers = DB.getMembers();
@@ -402,49 +441,57 @@ export class Tree {
 
     const collapseToggleHtml = hasChildren
       ? `
-        <button class="collapse-toggle-btn absolute -bottom-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-slate-900 border border-gold/30 hover:border-gold flex items-center justify-center text-xs text-gold transition-transform z-20 shadow-md ${isCollapsed ? 'rotate-180' : ''}" data-id="${member.id}" title="${isCollapsed ? 'Expand lineage' : 'Collapse lineage'}">
-          <i class="fa-solid fa-angle-down"></i>
+        <button class="collapse-toggle-btn absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-slate-900 border border-gold/30 hover:border-gold flex items-center justify-center text-xs text-gold transition-all z-20 shadow-lg" data-id="${member.id}" title="${isCollapsed ? 'Expand lineage' : 'Collapse lineage'}">
+          <i class="fa-solid ${isCollapsed ? 'fa-angle-down' : 'fa-angle-up'}"></i>
         </button>
       `
       : '';
 
+    // Add Adopted badge
+    const relBadge = member.relationshipType === 'Adopted'
+      ? `<span class="px-2 py-0.5 bg-sky-500/10 text-sky-400 text-[8px] tracking-wider uppercase font-extrabold border border-sky-500/20 rounded">Adopted</span>`
+      : '';
+
     div.innerHTML = `
       <!-- User basic metadata -->
-      <div class="flex items-start gap-3">
+      <div class="flex items-start gap-3 relative">
         <div class="relative shrink-0">
-          <img src="${member.avatar || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=80&q=80'}" alt="${member.firstName}" class="w-12 h-12 rounded-xl object-cover border-2 border-gold/25 group-hover:border-gold transition-colors">
-          <span class="absolute -top-1 -left-1 w-4 h-4 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center text-[8px] text-slate-400">
+          <img src="${member.avatar || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=80&q=80'}" alt="${member.firstName}" class="w-12 h-12 rounded-2xl object-cover border-2 border-gold/25 group-hover:border-gold transition-all shadow-inner">
+          <span class="absolute -top-1 -left-1 w-4.5 h-4.5 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center text-[8px]">
             ${isMale ? '<i class="fa-solid fa-mars text-blue-400"></i>' : '<i class="fa-solid fa-venus text-pink-400"></i>'}
           </span>
         </div>
-        <div class="flex flex-col min-w-0 flex-grow">
-          <span class="text-xs font-semibold text-white truncate group-hover:text-gold transition-colors">${member.firstName} ${member.lastName}</span>
-          <span class="text-[10px] text-slate-400 font-light truncate italic">"${member.nickname || 'None'}"</span>
-          <span class="text-[9px] text-slate-500 font-light truncate mt-0.5">${member.role || 'Member'}</span>
+        <div class="flex flex-col min-w-0 flex-grow text-left">
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="text-xs font-serif font-bold text-white truncate group-hover:text-gold transition-colors">${member.firstName} ${member.lastName}</span>
+            <span class="text-[10px] shrink-0" title="Flag Country">${member.countryFlag || "🇳🇬"}</span>
+          </div>
+          <span class="text-[9px] text-slate-400 font-light truncate italic">"${member.nickname || 'None'}"</span>
+          <span class="text-[9px] text-slate-500 font-light truncate mt-0.5 flex items-center gap-1.5">${member.role || 'Member'} ${relBadge}</span>
         </div>
       </div>
 
       <!-- Quick stats (Dates / Generation) -->
-      <div class="flex items-center justify-between border-t border-white/5 pt-2.5 text-[10px] text-slate-400">
-        <div class="flex flex-col">
-          <span class="font-light">DOB: ${member.birthDate ? member.birthDate.substring(0, 4) : 'N/A'}</span>
-          <span class="font-light">${member.deathDate ? 'DOD: ' + member.deathDate.substring(0, 4) : 'Age: ' + this.calculateAge(member.birthDate)}</span>
+      <div class="flex items-center justify-between border-t border-white/5 pt-2.5 text-[10px] text-slate-400 mt-1">
+        <div class="flex flex-col text-left">
+          <span class="font-light text-slate-400">Born: ${member.birthDate ? member.birthDate.substring(0, 4) : 'N/A'}</span>
+          <span class="font-light text-slate-400">${member.deathDate ? 'Died: ' + member.deathDate.substring(0, 4) : 'Age: ' + this.calculateAge(member.birthDate)}</span>
         </div>
-        <div class="flex flex-col items-end gap-1">
-          <span class="text-[8px] uppercase tracking-wider bg-gold/10 text-gold px-1.5 py-0.5 rounded font-bold">Gen ${member.generation}</span>
+        <div class="flex flex-col items-end gap-1 shrink-0">
+          <span class="text-[8px] uppercase tracking-wider bg-gold/15 text-gold px-2 py-0.5 rounded font-extrabold border border-gold/10">Gen ${member.generation}</span>
           ${statusPill}
         </div>
       </div>
 
       <!-- Quick Actions bar -->
-      <div class="flex gap-2 border-t border-white/5 pt-2.5 mt-0.5 relative z-10">
-        <button class="view-profile-btn flex-grow h-7 bg-white/5 hover:bg-gold hover:text-slate-950 rounded-lg text-[10px] font-semibold tracking-wider uppercase transition-all flex items-center justify-center gap-1" data-id="${member.id}">
-          <i class="fa-solid fa-id-card"></i> View Profile
+      <div class="flex gap-1.5 border-t border-white/5 pt-2.5 mt-1.5 relative z-10">
+        <button class="view-profile-btn flex-grow h-7.5 bg-white/5 hover:bg-gold hover:text-slate-950 rounded-lg text-[9px] font-extrabold tracking-wider uppercase transition-all flex items-center justify-center gap-1" data-id="${member.id}">
+          <i class="fa-solid fa-id-card"></i> Profile
         </button>
-        <button class="quick-info-btn w-7 h-7 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-lg flex items-center justify-center transition-colors text-xs" data-id="${member.id}" title="Quick View">
+        <button class="quick-info-btn w-7.5 h-7.5 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-lg flex items-center justify-center transition-all text-xs" data-id="${member.id}" title="Quick View">
           <i class="fa-solid fa-eye"></i>
         </button>
-        <button class="edit-node-btn w-7 h-7 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-lg flex items-center justify-center transition-colors text-xs" data-id="${member.id}" title="Modify Profile / Relations">
+        <button class="edit-node-btn w-7.5 h-7.5 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-lg flex items-center justify-center transition-all text-xs" data-id="${member.id}" title="Modify Profile / Relations">
           <i class="fa-solid fa-pen-to-square"></i>
         </button>
       </div>
@@ -453,6 +500,11 @@ export class Tree {
     `;
 
     // Dynamic triggers on buttons inside the card
+    div.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleNodeHighlight(member.id);
+    });
+
     div.querySelector('.view-profile-btn').addEventListener('click', (e) => {
       e.stopPropagation();
       window.location.href = `member.html?id=${member.id}`;
@@ -484,6 +536,36 @@ export class Tree {
     return div;
   }
 
+  // Interactive highlighting relationships checker
+  static toggleNodeHighlight(memberId) {
+    if (activeSelectedNodeId === memberId) {
+      activeSelectedNodeId = null;
+    } else {
+      activeSelectedNodeId = memberId;
+    }
+    this.render();
+  }
+
+  static isRelated(targetId, activeId) {
+    const target = DB.getMember(targetId);
+    const active = DB.getMember(activeId);
+    if (!target || !active) return false;
+
+    // 1. Spouses
+    if (active.spouseId === targetId || target.spouseId === activeId) return true;
+    if (active.spouses && active.spouses.some(sp => sp.id === targetId)) return true;
+    if (target.spouses && target.spouses.some(sp => sp.id === activeId)) return true;
+
+    // 2. Siblings (or Half-siblings)
+    if ((active.fatherId && active.fatherId === target.fatherId) || (active.motherId && active.motherId === target.motherId)) return true;
+
+    // 3. Parents / Descendants
+    if (active.fatherId === targetId || active.motherId === targetId) return true;
+    if (target.fatherId === activeId || target.motherId === activeId) return true;
+
+    return false;
+  }
+
   // Draw Orthogonal Connector SVG lines dynamically between related cards
   static updateSVGConnectors() {
     const svgLayer = document.getElementById('tree-svg-layer');
@@ -492,50 +574,78 @@ export class Tree {
     svgLayer.innerHTML = '';
     const members = DB.getMembers();
     const coords = this.coordinates;
+    if (!coords) return;
 
     const lines = [];
+    const cardWidth = 260;
+    const cardHeight = 160;
 
-    // Resolve Spouse lines (horizontal) and descendant stem lines
+    // We keep track of drawn marriage pairings to avoid redundant lines
+    const processedMarriages = new Set();
+
     members.forEach(member => {
       if (collapsedNodes.has(member.id)) return; // Don't draw descendants connections if parent collapsed
 
       const parentCoord = coords[member.id];
       if (!parentCoord) return;
 
-      const cardWidth = 260;
-      const cardHeight = 160;
+      // multi-spouse marriages
+      const spouseIds = new Set();
+      if (member.spouseId) spouseIds.add(member.spouseId);
+      if (member.spouses) {
+        member.spouses.forEach(sp => spouseIds.add(sp.id));
+      }
 
-      // If they have a spouse, draw horizontal bar between them
-      if (member.spouseId) {
-        const spouseCoord = coords[member.spouseId];
-        // Only draw the line once per pair (from male spouse or alphabetically first)
-        if (spouseCoord && member.id < member.spouseId) {
-          const startX = parentCoord.x + cardWidth;
-          const endX = spouseCoord.x;
-          const marriageY = parentCoord.y + (cardHeight / 2);
+      spouseIds.forEach(spouseId => {
+        const spouseCoord = coords[spouseId];
+        if (!spouseCoord) return;
+
+        // Draw marriage bridge once per couple
+        const pairKey = [member.id, spouseId].sort().join('-');
+        if (!processedMarriages.has(pairKey)) {
+          processedMarriages.add(pairKey);
+
+          // Find which partner is drawn on the left side
+          const leftIsMember = parentCoord.x < spouseCoord.x;
+          const leftCoord = leftIsMember ? parentCoord : spouseCoord;
+          const rightCoord = leftIsMember ? spouseCoord : parentCoord;
+
+          const startX = leftCoord.x + cardWidth;
+          const endX = rightCoord.x;
+          const marriageY = leftCoord.y + (cardHeight / 2);
+
+          // Highlight path if matching selected relationship
+          const marriageHighlight = activeSelectedNodeId && (
+            (member.id === activeSelectedNodeId || spouseId === activeSelectedNodeId) ||
+            (this.isRelated(member.id, activeSelectedNodeId) && this.isRelated(spouseId, activeSelectedNodeId))
+          );
+          const color = marriageHighlight ? "#10B981" : "#D4AF37";
+          const width = marriageHighlight ? "3.5" : "2.5";
+          const op = marriageHighlight ? "1.0" : "0.6";
 
           // Render marriage bar
           lines.push(`
             <path d="M ${startX} ${marriageY} L ${endX} ${marriageY}"
-                  stroke="#D4AF37" stroke-width="2.5" fill="none" opacity="0.6"/>
+                  stroke="${color}" stroke-width="${width}" fill="none" opacity="${op}"/>
           `);
 
-          // From the center of marriage bridge, drop a vertical stem down
+          // Drop a vertical stem down from the bridge mid-point
           const midX = (startX + endX) / 2;
           const stemEndY = marriageY + 110; // Point below where branching horizontal bar sits
+
           lines.push(`
             <path d="M ${midX} ${marriageY} L ${midX} ${stemEndY}"
-                  stroke="#D4AF37" stroke-width="2" fill="none" opacity="0.6"/>
+                  stroke="${color}" stroke-width="${width}" fill="none" opacity="${op}"/>
           `);
 
-          // Find common children
+          // Find children linked to this mother-father pair
           const children = members.filter(child =>
-            (child.fatherId === member.id && child.motherId === member.spouseId) ||
-            (child.fatherId === member.spouseId && child.motherId === member.id)
-          ).filter(child => coords[child.id]); // Must have positions
+            (child.fatherId === member.id && child.motherId === spouseId) ||
+            (child.fatherId === spouseId && child.motherId === member.id)
+          ).filter(child => coords[child.id]);
 
           if (children.length > 0) {
-            // Draw horizontal branching bar that spans from the first child X to the last child X
+            // Draw horizontal branching bar that spans from first child to last child X
             const childCoords = children.map(c => coords[c.id]);
             const minChildX = Math.min(...childCoords.map(c => c.x)) + (cardWidth / 2);
             const maxChildX = Math.max(...childCoords.map(c => c.x)) + (cardWidth / 2);
@@ -545,26 +655,33 @@ export class Tree {
                     stroke="#10B981" stroke-width="1.8" fill="none" opacity="0.5" />
             `);
 
-            // Drop a vertical stem from the branch directly down to each child
+            // Drop individual vertical stems to each child
             children.forEach(child => {
               const childCoord = coords[child.id];
               const childCenterX = childCoord.x + (cardWidth / 2);
               const childTopY = childCoord.y;
 
+              const childHighlight = activeSelectedNodeId && (child.id === activeSelectedNodeId || child.fatherId === activeSelectedNodeId || child.motherId === activeSelectedNodeId);
+              const childStroke = childHighlight ? "#10B981" : "#10B981";
+              const childStrokeWidth = childHighlight ? "2.5" : "1.8";
+
               lines.push(`
                 <path d="M ${childCenterX} ${stemEndY} L ${childCenterX} ${childTopY}"
-                      stroke="#10B981" stroke-width="1.8" stroke-dasharray="2,2" fill="none" opacity="0.6"/>
+                      stroke="${childStroke}" stroke-width="${childStrokeWidth}" stroke-dasharray="${childHighlight ? 'none' : '2,2'}" fill="none" opacity="0.7"/>
               `);
             });
           }
         }
-      } else {
-        // Single parent fallback (if spouse is not defined/dead/removed)
+      });
+
+      // Single parent / unknown spouse fallback
+      const hasDefinedSpouse = spouseIds.size > 0;
+      if (!hasDefinedSpouse) {
         const children = members.filter(child => child.fatherId === member.id || child.motherId === member.id).filter(c => coords[c.id]);
         if (children.length > 0) {
           const stemStartX = parentCoord.x + (cardWidth / 2);
           const stemStartY = parentCoord.y + cardHeight;
-          const stemEndY = stemStartY + 50;
+          const stemEndY = stemStartY + 60;
 
           lines.push(`
             <path d="M ${stemStartX} ${stemStartY} L ${stemStartX} ${stemEndY}"
@@ -597,7 +714,7 @@ export class Tree {
     svgLayer.innerHTML = lines.join('');
   }
 
-  // Camera canvas binding: click and drag, scroll zoom, viewport bounds
+  // Camera canvas binding: mouse drag, momentum scroll, zoom wheel and trackpad touch
   static bindCanvasControls() {
     const viewport = document.getElementById('viewport-container');
     const canvas = document.getElementById('tree-canvas');
@@ -610,9 +727,23 @@ export class Tree {
 
     applyTransform();
 
+    // Keyboard handlers
+    window.addEventListener('keydown', (e) => {
+      const step = 45;
+      if (e.key === 'ArrowUp') { transformY += step; applyTransform(); }
+      if (e.key === 'ArrowDown') { transformY -= step; applyTransform(); }
+      if (e.key === 'ArrowLeft') { transformX += step; applyTransform(); }
+      if (e.key === 'ArrowRight') { transformX -= step; applyTransform(); }
+      if (e.key === '=' || e.key === '+') { scale = Math.min(2.0, scale + 0.1); applyTransform(); }
+      if (e.key === '-') { scale = Math.max(0.2, scale - 0.1); applyTransform(); }
+      if (e.key === 'Escape') {
+        activeSelectedNodeId = null;
+        this.render();
+      }
+    });
+
     // 1. Mouse Dragging
     viewport.addEventListener('mousedown', (e) => {
-      // Don't drag if clicking buttons, select inputs, or form fields
       if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
 
       isDragging = true;
@@ -631,21 +762,42 @@ export class Tree {
       isDragging = false;
     });
 
-    // Touch support for mobile!
+    // Touch Support with basic pinch/zoom
+    let lastTouchDist = 0;
     viewport.addEventListener('touchstart', (e) => {
       if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
       if (e.touches.length === 1) {
         isDragging = true;
         startX = e.touches[0].clientX - transformX;
         startY = e.touches[0].clientY - transformY;
+      } else if (e.touches.length === 2) {
+        isDragging = false;
+        lastTouchDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
       }
     });
 
     window.addEventListener('touchmove', (e) => {
-      if (!isDragging || e.touches.length !== 1) return;
-      transformX = e.touches[0].clientX - startX;
-      transformY = e.touches[0].clientY - startY;
-      applyTransform();
+      if (isDragging && e.touches.length === 1) {
+        transformX = e.touches[0].clientX - startX;
+        transformY = e.touches[0].clientY - startY;
+        applyTransform();
+      } else if (e.touches.length === 2) {
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        const factor = dist / lastTouchDist;
+        if (factor > 1.0) {
+          scale = Math.min(2.0, scale + 0.03);
+        } else {
+          scale = Math.max(0.2, scale - 0.03);
+        }
+        lastTouchDist = dist;
+        applyTransform();
+      }
     });
 
     window.addEventListener('touchend', () => {
@@ -699,18 +851,18 @@ export class Tree {
 
     if (zoomReset) {
       zoomReset.addEventListener('click', () => {
-        scale = 0.85;
-        transformX = -1000;
-        transformY = -100;
+        scale = 0.75;
+        transformX = -1300;
+        transformY = -50;
         applyTransform();
       });
     }
 
     if (recenterRoots) {
       recenterRoots.addEventListener('click', () => {
-        // Center camera around roots (Kolawole card X: 2200, Y: 150)
-        scale = 0.85;
-        transformX = -1600;
+        // Center camera around roots
+        scale = 0.75;
+        transformX = -1300;
         transformY = -50;
         applyTransform();
       });
@@ -787,7 +939,6 @@ export class Tree {
     const viewH = viewport.clientHeight;
 
     // Back-calculate how much of 5000x2000 canvas is visible inside viewport
-    // Zoomed box dimensions
     const visibleWidth = (viewW / scale) * scaleFactorX;
     const visibleHeight = (viewH / scale) * scaleFactorY;
 
@@ -876,12 +1027,15 @@ export class Tree {
     this.updateMinimapViewport();
 
     // Highlight card with dynamic blinking effect
+    activeSelectedNodeId = memberId;
+    this.render();
+
     const card = document.getElementById(`tree-card-${memberId}`);
     if (card) {
-      card.classList.add('border-gold', 'scale-105', 'shadow-2xl', 'ring-2', 'ring-gold/40');
+      card.classList.add('ring-4', 'ring-gold', 'scale-105', 'shadow-2xl');
       setTimeout(() => {
-        card.classList.remove('border-gold', 'scale-105', 'shadow-2xl', 'ring-2', 'ring-gold/40');
-      }, 2500);
+        card.classList.remove('ring-4', 'ring-gold', 'scale-105', 'shadow-2xl');
+      }, 3000);
     }
   }
 
@@ -917,7 +1071,7 @@ export class Tree {
     const isLiving = member.status === 'Living';
 
     drawer.innerHTML = `
-      <div class="flex flex-col gap-6">
+      <div class="flex flex-col gap-6 text-left">
         <!-- Close button & title -->
         <div class="flex items-center justify-between border-b border-white/5 pb-4">
           <span class="font-serif text-lg font-bold text-white tracking-wide">Quick Profile</span>
@@ -1031,7 +1185,7 @@ export class Tree {
             </div>
             <div>
               <h3 class="text-base font-serif font-bold text-white">Modify Family Node: ${member.firstName}</h3>
-              <p class="text-[10px] text-slate-500">Edit demographic stats, photos, or connect structural relations.</p>
+              <p class="text-[10px] text-slate-500 font-light">Edit demographic stats, photos, or connect structural relations.</p>
             </div>
           </div>
           <button id="close-modal-btn" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
@@ -1080,13 +1234,11 @@ export class Tree {
             </div>
           </div>
 
-          <!-- Avatar Image link -->
           <div class="flex flex-col gap-1.5">
             <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Avatar Image URL</label>
             <input type="url" id="edit-avatar" value="${member.avatar || ''}" class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold"/>
           </div>
 
-          <!-- Chronology / Biography -->
           <div class="flex flex-col gap-1.5">
             <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Full Chronicle Biography</label>
             <textarea id="edit-biography" rows="4" class="p-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold resize-none">${member.biography || ''}</textarea>
