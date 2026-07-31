@@ -38,7 +38,8 @@ const isTestEnv = typeof window !== 'undefined' && window.location.pathname.incl
 try {
   // Only use simulation mode if Firebase initialization actually fails,
   // or if explicitly running local unit tests in test_backend.html.
-  if (firebaseConfig && firebaseConfig.apiKey && !isTestEnv) {
+  const forceSim = typeof localStorage !== 'undefined' && localStorage.getItem("firebase_force_simulation") === "true";
+  if (firebaseConfig && firebaseConfig.apiKey && !isTestEnv && !forceSim) {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);

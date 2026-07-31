@@ -12,7 +12,8 @@ def run_backend_tests():
 
         try:
             print("Navigating to test_backend.html...")
-            page.goto("http://localhost:8000/test_backend.html")
+            import time
+            page.goto(f"http://localhost:8000/test_backend.html?cb={int(time.time())}")
 
             # Wait for indicator to be attached (even if hidden or failed)
             page.wait_for_selector("#test-status-indicator", state="attached", timeout=10000)

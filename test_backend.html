@@ -64,6 +64,15 @@
     import { subscribe } from "./js/services/eventBus.js";
     import { ROLES } from "./js/firebase/permissions.js";
 
+    // Cloudinary Platform (Phase 7) imports
+    import { getCloudinaryConfig } from "./config.cloudinary.js";
+    import { validateFile } from "./js/cloudinary/mediaValidator.js";
+    import { getTransformationUrl, getOptimizedUrls } from "./js/cloudinary/cloudinary.js";
+    import { uploadFile, simulateUpload, processOfflineQueue } from "./js/cloudinary/uploadService.js";
+    import { uploadProfilePicture, uploadGalleryImages } from "./js/cloudinary/imageService.js";
+    import { uploadDocument } from "./js/cloudinary/documentService.js";
+    import * as mediaManager from "./js/cloudinary/mediaManager.js";
+
     const resultsDiv = document.getElementById("results");
     const summaryDiv = document.getElementById("summary");
 
@@ -472,6 +481,217 @@
 
         const serviceDocId = await documentService.createDocument({ title: "Grandfather Certificate", fileUrl: "http://example.com/certificate.pdf" });
         assert(typeof serviceDocId === "string", "documentService.createDocument successfully wraps documentRepo.");
+
+        // =====================================================================
+        // 6. CLOUDINARY MEDIA PLATFORM TESTS (PHASE 7)
+        // =====================================================================
+        console.log("Running Cloudinary Media Platform (Phase 7) Tests...");
+
+        // 6.1 Configuration Test
+        const config = getCloudinaryConfig();
+        assert(config.hasOwnProperty("cloudName") && config.hasOwnProperty("uploadPreset"), "Cloudinary config has required properties.");
+        localStorage.setItem("cloudinary_force_simulation", "true");
+        const forcedConfig = getCloudinaryConfig();
+        assert(forcedConfig.isSimulation === true, "Forced simulation mode works correctly.");
+        localStorage.removeItem("cloudinary_force_simulation");
+
+        // 6.2 Media Validation Tests
+        const validFile = { name: "portrait.jpg", size: 5 * 1024 * 1024, type: "image/jpeg" };
+        const invalidFileExt = { name: "script.sh", size: 1000, type: "text/x-shellscript" };
+        const oversizedFile = { name: "huge.png", size: 12 * 1024 * 1024, type: "image/png" };
+
+        assert(validateFile(validFile, "profiles") === true, "Validator permits valid JPEG image under profiles.");
+
+        let validationErrorThrown = false;
+        try {
+          validateFile(invalidFileExt, "profiles");
+        } catch (e) {
+          validationErrorThrown = e.name === "ValidationError";
+        }
+        assert(validationErrorThrown, "Validator rejects unsupported extension with ValidationError.");
+
+        let oversizedErrorThrown = false;
+        try {
+          validateFile(oversizedFile, "gallery");
+        } catch (e) {
+          oversizedErrorThrown = e.name === "ValidationError";
+        }
+        assert(oversizedErrorThrown, "Validator rejects file exceeding image size limit.");
+
+        // 6.3 Transformations Tests
+        const pId = "gallery/sample_photo";
+        const thumbUrl = getTransformationUrl(pId, { size: "thumbnail" });
+        assert(thumbUrl.includes("size=thumbnail") || (thumbUrl.includes("c_fill") && thumbUrl.includes("g_face")), "getTransformationUrl generates correct thumbnail transformation.");
+
+        const optimizedUrls = getOptimizedUrls(pId);
+        assert(optimizedUrls.thumbnail && optimizedUrls.medium && optimizedUrls.large && optimizedUrls.original, "getOptimizedUrls returns all size options.");
+
+        // 6.4 Upload Service Tests
+        const mockFile = new File(["dummy_content"], "avatar.png", { type: "image/png" });
+        let progressPercent = 0;
+        const uploadRes = await simulateUpload(mockFile, "profiles", {
+          onProgress: (p) => { progressPercent = p; }
+        });
+        assert(progressPercent === 100, "Progress callback reaches 100% in upload simulation.");
+        assert(uploadRes.publicId && uploadRes.secureUrl, "Simulated upload returns publicId and secureUrl.");
+
+        // 6.5 Offline Synchronization Queue Tests
+        const origOnLine = navigator.onLine;
+        Object.defineProperty(navigator, "onLine", {
+          get: () => false,
+          configurable: true
+        });
+
+        // Set simulation mode config for tests so it won't fail on actual XHR
+        localStorage.setItem("cloudinary_force_simulation", "true");
+
+        let syncCompletedReceived = false;
+        const syncListener = () => {
+          syncCompletedReceived = true;
+        };
+        window.addEventListener("cloudinary_sync_completed", syncListener);
+
+        const offlineFile = new File(["offline_content"], "certificate.jpg", { type: "image/jpeg" });
+        const offlineResult = await uploadFile(offlineFile, "certificates");
+        assert(offlineResult.isSimulated === true, "Uploading while offline falls back to simulated upload.");
+
+        // Check offline queue in localStorage
+        const storedQueue = JSON.parse(localStorage.getItem("lawal_cloudinary_offline_queue") || "[]");
+        assert(storedQueue.length > 0, "Offline upload successfully enqueued in localStorage registry.");
+
+        // Restore online
+        Object.defineProperty(navigator, "onLine", {
+          get: () => true,
+          configurable: true
+        });
+
+        // Trigger processing
+        await processOfflineQueue();
+        assert(syncCompletedReceived, "Online auto-sync triggers processOfflineQueue and fires completion event.");
+        window.removeEventListener("cloudinary_sync_completed", syncListener);
+
+        // Clean up simulation and offline queue
+        localStorage.removeItem("cloudinary_force_simulation");
+        localStorage.removeItem("lawal_cloudinary_offline_queue");
+
+        // 6.6 Image and Document Services Tests
+        const profileUploadResult = await uploadProfilePicture(mockFile, "mem-target");
+        assert(profileUploadResult.profileUrl && profileUploadResult.memberId === "mem-target", "uploadProfilePicture formats profile photo correctly.");
+
+        const galleryFiles = [
+          new File(["g1"], "tree1.png", { type: "image/png" }),
+          new File(["g2"], "tree2.jpg", { type: "image/jpeg" })
+        ];
+        const galleryUploads = await uploadGalleryImages(galleryFiles, { memberId: "mem-target", tags: ["reunion"], album: "Year 2026" });
+        assert(galleryUploads.length === 2, "uploadGalleryImages uploads bulk files.");
+        assert(galleryUploads[0].album === "Year 2026" && galleryUploads[1].tags.includes("reunion"), "Bulk gallery images capture tags and albums.");
+
+        const docFile = new File(["pdf_text"], "mil_record.pdf", { type: "application/pdf" });
+        const docUploadResult = await uploadDocument(docFile, { memberId: "mem-target", title: "Commission Scroll", category: "military" });
+        assert(docUploadResult.type === "PDF" && docUploadResult.category === "military", "uploadDocument maps PDF formats and folders.");
+        assert(docUploadResult.fileSize && docUploadResult.version === 1, "Document file size string and first version mapped correctly.");
+
+        // 6.7 Permissions Tests
+        localStorage.setItem("lawal_current_user", JSON.stringify({ uid: "user-abc", email: "user@lawal.org", role: "MEMBER" }));
+
+        let allowedProfileOwn = mediaManager.checkPermission("UPLOAD_PROFILE", { memberId: "user-abc" });
+        assert(allowedProfileOwn === true, "MEMBER permitted to upload their own profile picture.");
+
+        let deniedProfileOther = false;
+        try {
+          mediaManager.checkPermission("UPLOAD_PROFILE", { memberId: "user-different" });
+        } catch (e) {
+          deniedProfileOther = e.name === "PermissionDenied";
+        }
+        assert(deniedProfileOther, "MEMBER denied uploading profile pictures of other members.");
+
+        let deniedGalleryMember = false;
+        try {
+          mediaManager.checkPermission("UPLOAD_FAMILY_MEDIA");
+        } catch (e) {
+          deniedGalleryMember = e.name === "PermissionDenied";
+        }
+        assert(deniedGalleryMember, "MEMBER denied general gallery uploads.");
+
+        localStorage.setItem("lawal_current_user", JSON.stringify({ uid: "user-editor", email: "editor@lawal.org", role: "EDITOR" }));
+        let allowedGalleryEditor = mediaManager.checkPermission("UPLOAD_FAMILY_MEDIA");
+        assert(allowedGalleryEditor === true, "EDITOR permitted to upload family media.");
+
+        // Reset user session to SUPER_ADMIN
+        localStorage.setItem("lawal_current_user", JSON.stringify(adminUser));
+
+        // 6.8 Media Manager Core Orchestrator Integration Tests
+        const targetMemberId = await familyRepo.create({
+          firstName: "Lateef",
+          lastName: "Lawal",
+          gender: "Male",
+          living: true,
+          profilePhoto: ""
+        });
+
+        // Test Profile Photo Replacement
+        let photoChangedPublished = false;
+        subscribe("profilePhotoChanged", (evt) => {
+          if (evt.memberId === targetMemberId) {
+            photoChangedPublished = true;
+          }
+        });
+
+        const replacedMember = await mediaManager.replaceProfilePhoto(mockFile, targetMemberId);
+        assert(replacedMember.profilePhoto && photoChangedPublished, "replaceProfilePhoto uploads asset, updates Firestore, and fires Event Bus.");
+
+        const refetchedMember = await familyRepo.findById(targetMemberId);
+        assert(refetchedMember.profilePhoto === replacedMember.profilePhoto, "Replaced profile photo is persistently stored in Firestore.");
+
+        // Test Gallery Upload Integration
+        let mediaUploadedPublished = false;
+        let galleryUpdatedPublished = false;
+        subscribe("mediaUploaded", () => { mediaUploadedPublished = true; });
+        subscribe("galleryUpdated", () => { galleryUpdatedPublished = true; });
+
+        const bulkResults = await mediaManager.uploadGallery(galleryFiles, { memberId: targetMemberId, tags: ["festive"], album: "FESTAC" });
+        assert(bulkResults.length === 2 && mediaUploadedPublished && galleryUpdatedPublished, "uploadGallery creates records, fires Event Bus, and returns list.");
+
+        const registeredMedia = await mediaRepo.findAll();
+        assert(registeredMedia.some(m => m.album === "FESTAC"), "Gallery metadata is correctly persisted in mediaRepository.");
+
+        // Test Document Upload Integration
+        let docUploadedPublished = false;
+        subscribe("documentUploaded", () => { docUploadedPublished = true; });
+
+        const docRecord = await mediaManager.uploadDoc(docFile, { memberId: targetMemberId, title: "Grandfather Pension", category: "military" });
+        assert(docRecord.documentId && docUploadedPublished, "uploadDoc creates document record and publishes documentUploaded event.");
+
+        const registeredDocs = await docRepo.findAll();
+        assert(registeredDocs.some(d => d.title === "Grandfather Pension"), "Document metadata is correctly persisted in documentRepository.");
+
+        // Test Search Integration
+        const searchResultsByPerson = await mediaManager.searchMedia({ person: targetMemberId });
+        assert(searchResultsByPerson.length > 0, "searchMedia retrieves records filtered by Person ID.");
+
+        const searchResultsByTag = await mediaManager.searchMedia({ tags: ["festive"] });
+        assert(searchResultsByTag.some(m => m.album === "FESTAC"), "searchMedia retrieves records filtered by Tag.");
+
+        // Test Asset Deletion Integration
+        let mediaDeletedPublished = false;
+        subscribe("mediaDeleted", () => { mediaDeletedPublished = true; });
+
+        const mediaToDelete = bulkResults[0];
+        const deleteRes = await mediaManager.deleteAsset(mediaToDelete.mediaId, "media");
+        assert(deleteRes === true && mediaDeletedPublished, "deleteAsset deletes media from repository and publishes mediaDeleted.");
+
+        const deletedMediaCheck = await mediaRepo.findById(mediaToDelete.mediaId);
+        assert(deletedMediaCheck === null, "Deleted media metadata is removed from Firestore/Simulation database.");
+
+        const docToDelete = docRecord;
+        const deleteDocRes = await mediaManager.deleteAsset(docToDelete.documentId, "document");
+        assert(deleteDocRes === true, "deleteAsset deletes document from repository.");
+
+        const deletedDocCheck = await docRepo.findById(docToDelete.documentId);
+        assert(deletedDocCheck === null, "Deleted document metadata is removed from Firestore/Simulation database.");
+
+        // Clear storage at the end of tests to avoid side-effects
+        localStorage.clear();
 
       } catch (err) {
         console.error("Test execution threw error:", err);
