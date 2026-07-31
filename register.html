@@ -64,6 +64,8 @@
         </div>
 
         <form id="register-form" class="grid sm:grid-cols-2 gap-4">
+          <div id="alert-box" class="hidden text-xs py-2.5 px-3 rounded-lg border sm:col-span-2"></div>
+
           <div class="flex flex-col gap-1.5">
             <label for="firstName" class="text-xs font-semibold tracking-wider text-slate-300 uppercase">First Name</label>
             <input
@@ -132,6 +134,17 @@
               id="password"
               required
               placeholder="Minimum 6 characters"
+              class="w-full h-11 px-4 rounded-xl bg-slate-900/80 border border-white/10 text-sm focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all text-slate-200"
+            />
+          </div>
+
+          <div class="flex flex-col gap-1.5 sm:col-span-2">
+            <label for="confirmPassword" class="text-xs font-semibold tracking-wider text-slate-300 uppercase">Confirm Security Code</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              required
+              placeholder="Re-type security code"
               class="w-full h-11 px-4 rounded-xl bg-slate-900/80 border border-white/10 text-sm focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all text-slate-200"
             />
           </div>
@@ -209,12 +222,13 @@
   <script type="module">
     import { DB } from './js/db.js';
     import { app, auth, db } from './js/firebase/firebase.js';
-    import { initializeAuth } from './js/firebase/auth.js';
+    import { initializeAuth, registerUser } from './js/firebase/auth.js';
 
     DB.init();
     initializeAuth();
 
     const form = document.getElementById('register-form');
+    const alertBox = document.getElementById('alert-box');
     const verifyModal = document.getElementById('verify-modal');
     const verifyCard = document.getElementById('verify-card');
     const displayEmail = document.getElementById('display-email');
@@ -223,52 +237,117 @@
 
     let registeredUser = null;
 
-    form.addEventListener('submit', (e) => {
+    // Help translate Firebase Auth errors into beautiful family portal warnings
+    function translateAuthError(error) {
+      console.error("[House of Lawal Auth Error]:", error);
+      const code = error.code || error.message || "";
+      if (code.includes("email-already-in-use")) {
+        return "This email address is already registered to a family relative profile.";
+      } else if (code.includes("weak-password")) {
+        return "The security code is too weak. Please use at least 6 characters.";
+      } else if (code.includes("invalid-email")) {
+        return "Please enter a valid family relative email address.";
+      }
+      return "An unexpected portal authentication error occurred. Please contact the administrator.";
+    }
+
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      alertBox.classList.add('hidden');
 
       const firstName = document.getElementById('firstName').value.trim();
       const lastName = document.getElementById('lastName').value.trim();
       const email = document.getElementById('email').value.trim();
       const generation = parseInt(document.getElementById('generation').value);
       const branch = document.getElementById('branch').value;
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
 
-      registeredUser = {
-        id: `${firstName.toLowerCase()}-${lastName.toLowerCase()}`,
-        firstName,
-        lastName,
-        email,
-        generation,
-        status: "Living",
-        role: `Relative (${branch} Branch)`,
-        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80"
-      };
+      // 1. Password mismatch validation
+      if (password !== confirmPassword) {
+        alertBox.className = "text-xs py-2.5 px-3 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 sm:col-span-2";
+        alertBox.textContent = "Security codes do not match. Please re-type and try again.";
+        alertBox.classList.remove('hidden');
+        return;
+      }
 
-      // Populate elements inside the mock inbox
-      displayEmail.textContent = email;
-      displayName.textContent = `${firstName} ${lastName}`;
+      // 2. Minimum length validation
+      if (password.length < 6) {
+        alertBox.className = "text-xs py-2.5 px-3 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 sm:col-span-2";
+        alertBox.textContent = "The security code must be at least 6 characters long.";
+        alertBox.classList.remove('hidden');
+        return;
+      }
 
-      // Open Modal
-      verifyModal.classList.remove('pointer-events-none', 'opacity-0');
-      verifyModal.classList.add('opacity-100');
-      verifyCard.classList.remove('scale-95');
-      verifyCard.classList.add('scale-100');
+      // 3. Email format validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        alertBox.className = "text-xs py-2.5 px-3 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 sm:col-span-2";
+        alertBox.textContent = "Please provide a valid family relative email address.";
+        alertBox.classList.remove('hidden');
+        return;
+      }
+
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = 'Submitting Request <i class="fa-solid fa-circle-notch animate-spin ml-1"></i>';
+
+      try {
+        registeredUser = await registerUser(firstName, lastName, email, password, generation, branch);
+
+        // Populate elements inside the mock inbox
+        displayEmail.textContent = email;
+        displayName.textContent = `${firstName} ${lastName}`;
+
+        // Configure verification experience
+        if (auth) {
+          // If real Firebase is active
+          mockVerifyBtn.textContent = "I have verified my email - Sign In now!";
+          const simText = verifyModal.querySelector('.uppercase.tracking-wider');
+          if (simText) simText.textContent = "Real Firebase Email Dispatched";
+          const infoText = verifyModal.querySelector('p.text-[10px]');
+          if (infoText) infoText.textContent = "A secure verification link was sent using Firebase Auth. Check spam/junk folders if not received.";
+        }
+
+        // Open Modal
+        verifyModal.classList.remove('pointer-events-none', 'opacity-0');
+        verifyModal.classList.add('opacity-100');
+        verifyCard.classList.remove('scale-95');
+        verifyCard.classList.add('scale-100');
+      } catch (error) {
+        alertBox.className = "text-xs py-2.5 px-3 rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 sm:col-span-2";
+        alertBox.textContent = translateAuthError(error);
+        alertBox.classList.remove('hidden');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
     });
 
     mockVerifyBtn.addEventListener('click', () => {
       if (registeredUser) {
-        // Seed user to local DB
-        DB.addMember(registeredUser);
+        if (auth) {
+          // Real Firebase auth user redirect
+          mockVerifyBtn.textContent = "Redirecting to Sign In...";
+          mockVerifyBtn.className = "w-full h-9 bg-emerald text-slate-950 text-xs font-semibold rounded-lg pointer-events-none";
+          setTimeout(() => {
+            window.location.href = 'signin.html';
+          }, 1500);
+        } else {
+          // Simulated register login & redirect
+          // Log user session in as verified
+          registeredUser.emailVerified = true;
+          localStorage.setItem('lawal_current_user', JSON.stringify(registeredUser));
 
-        // Log user session in
-        localStorage.setItem('lawal_current_user', JSON.stringify(registeredUser));
+          // Add visual success alert
+          mockVerifyBtn.textContent = "Verified! Redirecting...";
+          mockVerifyBtn.className = "w-full h-9 bg-emerald text-slate-950 text-xs font-semibold rounded-lg pointer-events-none";
 
-        // Add visual success alert
-        mockVerifyBtn.textContent = "Verified! Redirecting...";
-        mockVerifyBtn.className = "w-full h-9 bg-emerald text-slate-950 text-xs font-semibold rounded-lg pointer-events-none";
-
-        setTimeout(() => {
-          window.location.href = 'dashboard.html';
-        }, 1500);
+          setTimeout(() => {
+            window.location.href = 'dashboard.html';
+          }, 1500);
+        }
       }
     });
   </script>
