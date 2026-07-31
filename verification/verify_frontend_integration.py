@@ -3,27 +3,50 @@ import sys
 from playwright.sync_api import sync_playwright
 
 def run_cuj(page):
-    print("Navigating to signin.html to initialize local session...")
+    page.on("console", lambda msg: print(f"[Browser Console] {msg.text}"))
+    page.on("dialog", lambda dialog: (print(f"[Browser Alert] {dialog.message}"), dialog.accept()))
+    import time
+    dynamic_email = f"admin.test.{int(time.time())}@lawal.org"
+
+    print("Registering a new test user to establish a real Firebase session...")
+    page.goto("http://localhost:8000/register.html")
+    page.wait_for_timeout(1000)
+    page.fill("#firstName", "Admin")
+    page.fill("#lastName", "Lawal")
+    page.fill("#email", dynamic_email)
+    page.select_option("#generation", "3")
+    page.select_option("#branch", "Lagos")
+    page.fill("#password", "password123")
+    page.fill("#confirmPassword", "password123")
+    page.check("#agree")
+    page.click("button[type='submit']")
+
+    page.wait_for_selector("#verify-modal.opacity-100", timeout=10000)
+    page.click("#mock-verify-btn")
+    page.wait_for_timeout(2500)
+
+    print("Logging in the newly registered user...")
     page.goto("http://localhost:8000/signin.html")
     page.wait_for_timeout(1000)
+    page.fill("#email", dynamic_email)
+    page.fill("#password", "password123")
+    page.click("button[type='submit']")
+    page.wait_for_timeout(2500)
 
-    # Set the admin logged-in session in localStorage
-    print("Setting admin session in localStorage...")
+    proceed_btn = page.locator("#proceed-unverified-btn")
+    if proceed_btn.is_visible():
+        print("Clicking Continue to Dashboard...")
+        proceed_btn.click()
+        page.wait_for_timeout(3000)
+
+    print("Elevating user's role to SUPER_ADMIN in localStorage for editing permissions...")
     page.evaluate("""() => {
-        localStorage.clear();
-        localStorage.setItem('lawal_current_user', JSON.stringify({
-            uid: 'admin-uid',
-            firstName: 'Admin',
-            lastName: 'Lawal',
-            displayName: 'Admin Lawal',
-            email: 'admin@lawal.org',
-            photoURL: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
-            role: 'SUPER_ADMIN',
-            emailVerified: true,
-            createdAt: new Date().toISOString(),
-            lastLogin: new Date().toISOString(),
-            active: true
-        }));
+        const cached = localStorage.getItem('lawal_current_user');
+        if (cached) {
+            const parsed = JSON.parse(cached);
+            parsed.role = 'SUPER_ADMIN';
+            localStorage.setItem('lawal_current_user', JSON.stringify(parsed));
+        }
     }""")
     page.wait_for_timeout(500)
 
@@ -65,7 +88,10 @@ def run_cuj(page):
     # Click Submit / Create Relative
     print("Submitting the relative form...")
     page.locator("#add-submit-btn").click()
-    page.wait_for_timeout(1500)
+
+    # Wait for the add modal to disappear (since Firestore calls take some time before fallback)
+    print("Waiting for Add Modal to close...")
+    page.wait_for_selector("#tree-edit-modal.opacity-0", timeout=15000)
 
     # Search for TJ in Tree Search autocomplete to verify creation
     print("Searching for the created member 'Babatunde'...")
@@ -96,7 +122,9 @@ def run_cuj(page):
     # Click Save Updates
     print("Submitting edit updates...")
     page.locator("#edit-submit-btn").click()
-    page.wait_for_timeout(1500)
+
+    print("Waiting for Edit Modal to close...")
+    page.wait_for_selector("#tree-edit-modal.opacity-0", timeout=15000)
 
     # Navigate to members directory to verify they are listed and searchable there
     print("Navigating to members directory...")

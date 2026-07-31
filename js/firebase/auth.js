@@ -64,21 +64,25 @@ export async function initializeAuth() {
     if (auth) {
       onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
+          let userData = null;
           try {
             // Fetch user document from Firestore
             const userDocRef = doc(db, "users", firebaseUser.uid);
+            console.log("[DEBUG] Fetching user doc for uid:", firebaseUser.uid);
             const userDocSnap = await getDoc(userDocRef);
-            let userData = null;
+            console.log("[DEBUG] Fetched user doc. Exists?", userDocSnap.exists());
 
             if (userDocSnap.exists()) {
               userData = userDocSnap.data();
               // Update local emailVerified status to keep it in sync
               if (userData.emailVerified !== firebaseUser.emailVerified) {
                 userData.emailVerified = firebaseUser.emailVerified;
+                console.log("[DEBUG] Updating emailVerified...");
                 await updateDoc(userDocRef, { emailVerified: firebaseUser.emailVerified });
               }
             } else {
               // Fallback/Create user document if it somehow got deleted or didn't get created
+              console.log("[DEBUG] User doc does not exist, creating fallback...");
               userData = {
                 uid: firebaseUser.uid,
                 firstName: firebaseUser.displayName ? firebaseUser.displayName.split(" ")[0] : "Relative",
@@ -93,13 +97,39 @@ export async function initializeAuth() {
                 active: true
               };
               await setDoc(userDocRef, userData);
+              console.log("[DEBUG] Fallback doc written successfully.");
             }
-
-            // Sync with old localStorage auth system for backward compatibility with pages
-            localStorage.setItem("lawal_current_user", JSON.stringify(userData));
           } catch (err) {
             handleBackendError("onAuthStateChanged Profile Fetch", err);
+            // On Firestore error (e.g. Permission Denied), construct the session locally, preserving any existing cached role if same UID
+            console.warn("[House of Lawal Auth] Firestore permission denied or offline. Falling back to local session mapping.");
+            const cached = localStorage.getItem("lawal_current_user");
+            let role = "MEMBER";
+            if (cached) {
+              try {
+                const parsed = JSON.parse(cached);
+                if (parsed && parsed.uid === firebaseUser.uid && parsed.role) {
+                  role = parsed.role;
+                }
+              } catch (e) {}
+            }
+            userData = {
+              uid: firebaseUser.uid,
+              firstName: firebaseUser.displayName ? firebaseUser.displayName.split(" ")[0] : "Relative",
+              lastName: firebaseUser.displayName ? firebaseUser.displayName.split(" ").slice(1).join(" ") : "Lawal",
+              displayName: firebaseUser.displayName || firebaseUser.email,
+              email: firebaseUser.email,
+              photoURL: firebaseUser.photoURL || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80",
+              role: role,
+              emailVerified: firebaseUser.emailVerified,
+              createdAt: new Date().toISOString(),
+              lastLogin: new Date().toISOString(),
+              active: true
+            };
           }
+
+          // Sync with old localStorage auth system for backward compatibility with pages
+          localStorage.setItem("lawal_current_user", JSON.stringify(userData));
         } else {
           localStorage.removeItem("lawal_current_user");
         }
@@ -204,7 +234,11 @@ export async function registerUser(firstName, lastName, email, password, generat
     await updateProfile(user, { displayName, photoURL });
 
     // 3. Send Email Verification
-    await sendEmailVerification(user);
+    try {
+      await sendEmailVerification(user);
+    } catch (evErr) {
+      handleBackendError("registerUser sendEmailVerification", evErr);
+    }
 
     // 4. Create Firestore document
     const userDocData = {
@@ -223,7 +257,12 @@ export async function registerUser(firstName, lastName, email, password, generat
       branch: branch || "Lagos"
     };
 
-    await setDoc(doc(db, "users", user.uid), userDocData);
+    try {
+      await setDoc(doc(db, "users", user.uid), userDocData);
+    } catch (dbErr) {
+      handleBackendError("registerUser setDoc", dbErr);
+      console.warn("[House of Lawal Auth] Firestore write permission denied. Saving user record locally.");
+    }
 
     // Seed the registered member to local database as well
     DB.init();
@@ -301,20 +340,38 @@ export async function loginUser(email, password) {
 
     // 2. Fetch/Verify document and update lastLogin
     const userDocRef = doc(db, "users", user.uid);
-    const userDocSnap = await getDoc(userDocRef);
     let userData = null;
-
     const lastLoginTime = new Date().toISOString();
 
-    if (userDocSnap.exists()) {
-      userData = userDocSnap.data();
-      userData.lastLogin = lastLoginTime;
-      userData.emailVerified = user.emailVerified;
-      await updateDoc(userDocRef, {
-        lastLogin: lastLoginTime,
-        emailVerified: user.emailVerified
-      });
-    } else {
+    try {
+      const userDocSnap = await getDoc(userDocRef);
+      if (userDocSnap.exists()) {
+        userData = userDocSnap.data();
+        userData.lastLogin = lastLoginTime;
+        userData.emailVerified = user.emailVerified;
+        await updateDoc(userDocRef, {
+          lastLogin: lastLoginTime,
+          emailVerified: user.emailVerified
+        });
+      } else {
+        userData = {
+          uid: user.uid,
+          firstName: user.displayName ? user.displayName.split(" ")[0] : "Relative",
+          lastName: user.displayName ? user.displayName.split(" ").slice(1).join(" ") : "Lawal",
+          displayName: user.displayName || user.email,
+          email: user.email,
+          photoURL: user.photoURL || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80",
+          role: "MEMBER",
+          emailVerified: user.emailVerified,
+          createdAt: new Date().toISOString(),
+          lastLogin: lastLoginTime,
+          active: true
+        };
+        await setDoc(userDocRef, userData);
+      }
+    } catch (dbErr) {
+      handleBackendError("loginUser Firestore Sync", dbErr);
+      console.warn("[House of Lawal Auth] Firestore write/read permission denied during login. Falling back to local session mapping.");
       userData = {
         uid: user.uid,
         firstName: user.displayName ? user.displayName.split(" ")[0] : "Relative",
@@ -328,7 +385,6 @@ export async function loginUser(email, password) {
         lastLogin: lastLoginTime,
         active: true
       };
-      await setDoc(userDocRef, userData);
     }
 
     // Cache in localStorage

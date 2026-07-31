@@ -306,7 +306,7 @@
           mockVerifyBtn.textContent = "I have verified my email - Sign In now!";
           const simText = verifyModal.querySelector('.uppercase.tracking-wider');
           if (simText) simText.textContent = "Real Firebase Email Dispatched";
-          const infoText = verifyModal.querySelector('p.text-[10px]');
+          const infoText = Array.from(verifyModal.querySelectorAll('p')).find(p => p.className.includes('text-[10px]'));
           if (infoText) infoText.textContent = "A secure verification link was sent using Firebase Auth. Check spam/junk folders if not received.";
         }
 
