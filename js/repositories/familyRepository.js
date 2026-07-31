@@ -95,7 +95,7 @@ export async function create(data) {
  * @returns {Promise<boolean>} True if update is successful.
  */
 export async function update(id, updateData) {
-  const current = await findById(id);
+  const current = await findById(id, true);
   if (!current) {
     throw new Error(`Member with ID [${id}] not found.`);
   }
@@ -185,16 +185,17 @@ export async function deleteMember(id) {
  * Finds a family member by ID.
  *
  * @param {string} id - Member ID.
+ * @param {boolean} includeDeleted - Whether to include soft-deleted records.
  * @returns {Promise<object|null>} Member details or null.
  */
-export async function findById(id) {
+export async function findById(id, includeDeleted = false) {
   try {
     if (db) {
       const docRef = doc(db, COLLECTION_NAME, id);
       const snap = await getDoc(docRef);
       if (snap.exists()) {
         const data = snap.data();
-        return data.deleted ? null : data;
+        return (data.deleted && !includeDeleted) ? null : data;
       }
       return null;
     }
@@ -204,18 +205,24 @@ export async function findById(id) {
 
   const members = getLocalMembers();
   const match = members.find(m => m.memberId === id);
-  return (match && !match.deleted) ? match : null;
+  return (match && (includeDeleted || !match.deleted)) ? match : null;
 }
 
 /**
  * Retrieves all active (non-deleted) family members.
  *
+ * @param {boolean} includeDeleted - Whether to include soft-deleted records.
  * @returns {Promise<object[]>} Array of active members.
  */
-export async function findAll() {
+export async function findAll(includeDeleted = false) {
   try {
     if (db) {
-      const q = query(collection(db, COLLECTION_NAME), where("deleted", "==", false));
+      let q;
+      if (includeDeleted) {
+        q = query(collection(db, COLLECTION_NAME));
+      } else {
+        q = query(collection(db, COLLECTION_NAME), where("deleted", "==", false));
+      }
       const querySnapshot = await getDocs(q);
       const results = [];
       querySnapshot.forEach((doc) => {
@@ -228,7 +235,7 @@ export async function findAll() {
   }
 
   const members = getLocalMembers();
-  return members.filter(m => !m.deleted);
+  return includeDeleted ? members : members.filter(m => !m.deleted);
 }
 
 /**
