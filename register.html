@@ -208,7 +208,11 @@
 
   <script type="module">
     import { DB } from './js/db.js';
+    import { app, auth, db } from './js/firebase/firebase.js';
+    import { initializeAuth } from './js/firebase/auth.js';
+
     DB.init();
+    initializeAuth();
 
     const form = document.getElementById('register-form');
     const verifyModal = document.getElementById('verify-modal');

@@ -324,6 +324,8 @@
   <script type="module">
     // Simple state detection and rendering
     import { DB } from './js/db.js';
+    import { app, auth, db } from './js/firebase/firebase.js';
+
     DB.init();
 
     const currentUser = JSON.parse(localStorage.getItem('lawal_current_user'));
