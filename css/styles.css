@@ -87,6 +87,101 @@ h1, h2, h3, h4, .font-serif {
   animation: fadeIn 0.6s ease-out forwards;
 }
 
+/* Ken Burns Slow Cinematic Zoom Effect */
+@keyframes kenburns {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-kenburns {
+  animation: kenburns 25s ease-in-out infinite;
+}
+
+/* Premium Loading screen animations */
+@keyframes elegantFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes gentleScale {
+  from { transform: scale(1.05); }
+  to { transform: scale(1); }
+}
+
+.animate-elegant-fade {
+  animation: elegantFadeIn 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-gentle-scale {
+  animation: gentleScale 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Heritage custom layout styling */
+.heritage-hero {
+  position: relative;
+  overflow: hidden;
+}
+
+.heritage-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url('../LawalNG1.png');
+  background-size: cover;
+  background-position: center 30%;
+  z-index: 0;
+}
+
+.heritage-banner {
+  background-image: linear-gradient(rgba(11, 15, 23, 0.65), rgba(11, 15, 23, 0.85)), url('../LawalNG1.png');
+  background-size: cover;
+  background-position: center 30%;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: border-color 0.3s ease;
+}
+
+.heritage-banner:hover {
+  border-color: rgba(212, 175, 55, 0.2);
+}
+
+.heritage-blurred-bg {
+  position: relative;
+  overflow: hidden;
+}
+
+.heritage-blurred-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url('../LawalNG1.png');
+  background-size: cover;
+  background-position: center;
+  filter: blur(15px) brightness(0.4);
+  transform: scale(1.1);
+  z-index: 0;
+}
+
+.heritage-card {
+  background-image: linear-gradient(rgba(30, 41, 59, 0.75), rgba(15, 23, 42, 0.95)), url('../LawalNG1.png');
+  background-size: cover;
+  background-position: center;
+}
+
+.heritage-empty-state {
+  background-image: radial-gradient(circle, rgba(15, 23, 42, 0.4) 0%, rgba(11, 15, 23, 0.9) 100%), url('../LawalNG1.png');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.15;
+}
+
 /* Tree pan/zoom utility classes */
 #tree-canvas {
   cursor: grab;

@@ -39,10 +39,19 @@
     </div>
   </header>
 
-  <!-- Login Main Section -->
-  <main class="flex-grow flex items-center justify-center py-16 px-6 relative overflow-hidden">
-    <!-- Subtle glow behind the card -->
-    <div class="absolute w-[450px] h-[450px] bg-gold/5 rounded-full blur-[100px] pointer-events-none"></div>
+  <!-- Login Main Section with LawalNG.png Background & tasteful dark overlay -->
+  <main class="flex-grow flex items-center justify-center py-16 px-6 relative overflow-hidden bg-slate-950">
+    <!-- LawalNG.png Heritage Backdrop -->
+    <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+      <!-- Tasteful dark overlay (approx 80% opacity) behind forms to ensure text remains highly readable -->
+      <div class="absolute inset-0 bg-gradient-to-b from-slate-950/90 via-slate-950/75 to-slate-950/90 z-10"></div>
+      <img
+        src="LawalNG1.png"
+        alt="Lawal Heritage backdrop"
+        class="w-full h-full object-cover opacity-25"
+        style="object-position: center 30%;"
+      />
+    </div>
 
     <div class="w-full max-w-md relative z-10">
       <!-- Glassmorphic Card -->
@@ -147,16 +156,25 @@
     </div>
   </main>
 
-  <!-- Loading overlay screen -->
-  <div id="loading-screen" class="fixed inset-0 bg-slate-950 z-[100] flex flex-col items-center justify-center gap-4 transition-opacity duration-300 pointer-events-none opacity-0">
-    <div class="relative w-16 h-16 flex items-center justify-center">
-      <div class="absolute inset-0 border-2 border-gold/10 rounded-full"></div>
-      <div class="absolute inset-0 border-t-2 border-gold rounded-full animate-spin"></div>
-      <i class="fa-solid fa-lock text-gold text-lg animate-pulse"></i>
+  <!-- Loading overlay screen with LawalNG1.png artwork -->
+  <div id="loading-screen" class="fixed inset-0 bg-slate-950 z-[100] flex flex-col items-center justify-center gap-6 transition-all duration-500 pointer-events-none opacity-0">
+    <!-- Centered image artwork with elegant scale animation -->
+    <div class="relative w-36 h-36 rounded-2xl overflow-hidden border border-gold/25 shadow-2xl animate-gentle-scale">
+      <img src="LawalNG1.png" alt="Lawal Heritage Identity" class="w-full h-full object-cover opacity-75">
+      <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
     </div>
-    <div class="flex flex-col items-center gap-1 text-center">
-      <span class="font-serif text-lg text-white font-medium tracking-wide">Securing Portal Access</span>
-      <span class="text-xs text-slate-500 font-light" id="loading-msg">Connecting to Firebase-ready database...</span>
+
+    <!-- Premium Spinner & Status -->
+    <div class="flex flex-col items-center gap-3">
+      <div class="relative w-12 h-12 flex items-center justify-center">
+        <div class="absolute inset-0 border-2 border-gold/10 rounded-full"></div>
+        <div class="absolute inset-0 border-t-2 border-gold rounded-full animate-spin"></div>
+        <i class="fa-solid fa-shield-halved text-gold text-sm animate-pulse"></i>
+      </div>
+      <div class="flex flex-col items-center gap-1 text-center">
+        <span class="font-serif text-lg text-white font-medium tracking-wide">Securing Portal Access</span>
+        <span class="text-xs text-slate-500 font-light" id="loading-msg">Connecting to Firebase-ready database...</span>
+      </div>
     </div>
   </div>
 

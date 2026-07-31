@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lawal.org | Preserving Our Heritage. Connecting Our Generations.</title>
+  <!-- Preload the homepage hero image -->
+  <link rel="preload" as="image" href="LawalNG1.png">
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Font Awesome Icons -->
@@ -39,6 +41,81 @@
 </head>
 <body class="bg-slate-950 text-slate-200 selection:bg-gold/30 selection:text-gold">
 
+  <!-- Elegant Loading Screen Overlay -->
+  <div id="home-loading-screen" class="fixed inset-0 bg-slate-950 z-[100] flex flex-col items-center justify-center transition-all duration-700 ease-out">
+    <div class="relative flex flex-col items-center gap-8 max-w-sm px-6 text-center animate-elegant-fade">
+
+      <!-- Center Artwork Container with gentle scale and fade-in -->
+      <div class="w-48 h-48 rounded-2xl overflow-hidden border border-gold/25 relative group animate-gentle-scale shadow-2xl">
+        <img
+          src="LawalNG1.png"
+          alt="Lawal Heritage Visual"
+          class="w-full h-full object-cover opacity-80"
+        />
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/25 to-transparent"></div>
+      </div>
+
+      <!-- Spinner and Status messages -->
+      <div class="flex flex-col items-center gap-3">
+        <div class="relative w-12 h-12 flex items-center justify-center">
+          <div class="absolute inset-0 border-2 border-gold/10 rounded-full"></div>
+          <div class="absolute inset-0 border-t-2 border-gold rounded-full animate-spin"></div>
+          <i class="fa-solid fa-seedling text-gold text-sm animate-pulse"></i>
+        </div>
+
+        <div class="flex flex-col items-center gap-1.5">
+          <span class="font-serif text-lg tracking-widest text-gold font-bold uppercase">LAWAL<span class="text-xs font-sans text-slate-400 tracking-normal ml-1">.ORG</span></span>
+          <span class="text-[10px] text-slate-500 font-light uppercase tracking-widest" id="loading-text">Honoring the Ancestors...</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Premium loading sequence
+    document.addEventListener("DOMContentLoaded", () => {
+      const loader = document.getElementById("home-loading-screen");
+      const loadingText = document.getElementById("loading-text");
+
+      // Sequence loading text hints
+      const messages = [
+        "Reconnecting Generation Nodes...",
+        "Resolving Egba Dynasty Records...",
+        "Portal Secured. Welcome Home."
+      ];
+
+      let msgIdx = 0;
+      const textInterval = setInterval(() => {
+        if (msgIdx < messages.length && loadingText) {
+          loadingText.textContent = messages[msgIdx];
+          msgIdx++;
+        }
+      }, 500);
+
+      // Fade out and scale up the content on load finish
+      window.addEventListener("load", () => {
+        setTimeout(() => {
+          clearInterval(textInterval);
+          if (loader) {
+            loader.classList.add("opacity-0", "pointer-events-none");
+            // Scale background element out slightly
+            loader.style.transform = "scale(1.05)";
+          }
+        }, 1500); // Elegant short delay to let animations complete
+      });
+    });
+
+    // Parallax scrolling effect on the hero backdrop
+    window.addEventListener('scroll', () => {
+      const backdrop = document.getElementById('hero-parallax-backdrop');
+      if (backdrop) {
+        const scrolled = window.pageYOffset;
+        backdrop.style.transform = `translateY(${scrolled * 0.35}px) scale(1.05)`;
+      }
+    });
+  </script>
+
   <!-- Header / Navigation -->
   <header class="fixed top-0 left-0 w-full z-50 transition-all duration-300 bg-slate-950/80 backdrop-blur-md border-b border-white/5">
     <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
@@ -60,9 +137,20 @@
 
   <!-- Hero Section -->
   <section class="relative min-h-screen pt-32 pb-20 flex items-center justify-center overflow-hidden">
-    <!-- Subtle gradient background glows -->
-    <div class="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gold/5 rounded-full blur-[120px] pointer-events-none"></div>
-    <div class="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[500px] h-[500px] bg-emerald/5 rounded-full blur-[120px] pointer-events-none"></div>
+    <!-- Cinematic Ken Burns Zoom & Subtle Parallax Backdrop -->
+    <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+      <!-- Dark gradient overlay (approximately 45–60% opacity) -->
+      <div class="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-slate-950/50 z-10"></div>
+      <!-- Zoom backdrop container -->
+      <div id="hero-parallax-backdrop" class="w-full h-full transform scale-105 select-none animate-kenburns origin-center opacity-40">
+        <img
+          src="LawalNG1.png"
+          alt="Lawal.org Ancestral Backdrop"
+          class="w-full h-full object-cover"
+          style="object-position: center 30%;"
+        />
+      </div>
+    </div>
 
     <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-12 gap-12 items-center relative z-10">
       <!-- Text Area -->
@@ -92,11 +180,12 @@
         <!-- Outer Glowing border -->
         <div class="absolute inset-0 bg-gradient-to-b from-gold/10 via-transparent to-emerald/10 rounded-3xl p-[1px]">
           <div class="w-full h-full bg-slate-900/65 backdrop-blur-xl rounded-3xl overflow-hidden relative group">
-            <!-- Unsplash African family placeholder / premium artwork representation -->
+            <!-- Signature Heritage Image -->
             <img
-              src="https://images.unsplash.com/photo-1542037104857-ffbb0b9155fb?auto=format&fit=crop&w=800&q=80"
+              src="LawalNG1.png"
               alt="Lawal Family Heritage"
-              class="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-1000"
+              class="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-1000"
+              style="object-position: center 30%;"
             />
             <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent flex flex-col justify-end p-8">
               <span class="text-xs text-gold tracking-widest uppercase font-semibold mb-1">Egba Dynasty</span>
