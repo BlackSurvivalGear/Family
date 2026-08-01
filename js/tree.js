@@ -2,7 +2,19 @@ import { DB } from './db.js';
 import * as memberService from './services/memberService.js';
 import * as relationshipService from './services/relationshipService.js';
 import * as relationshipRepository from './repositories/relationshipRepository.js';
-import { getFather, getMother, getCurrentSpouses, getFormerSpouses } from './genealogy/relationshipEngine.js';
+import * as documentService from './services/documentService.js';
+import * as mediaService from './services/mediaService.js';
+import {
+  getFather,
+  getMother,
+  getParents,
+  getChildren,
+  getSpouses,
+  getCurrentSpouses,
+  getFormerSpouses,
+  getSiblings,
+  findRelationship
+} from './genealogy/relationshipEngine.js';
 import { subscribe } from './services/eventBus.js';
 
 // Global variables for canvas states
@@ -106,100 +118,217 @@ export class Tree {
     if (!addBtn) return;
 
     addBtn.addEventListener('click', () => {
-      const modal = document.getElementById('tree-edit-modal');
-      if (!modal) return;
+      this.openAddModal();
+    });
 
-      modal.classList.remove('pointer-events-none', 'opacity-0');
-      modal.classList.add('opacity-100');
+    // Check and append the Restore Member button if it doesn't exist
+    if (addBtn && !document.getElementById('restore-member-trigger-btn')) {
+      const restoreBtn = document.createElement('button');
+      restoreBtn.id = 'restore-member-trigger-btn';
+      restoreBtn.className = 'px-3.5 h-8 bg-blue-600 hover:bg-blue-700 text-white font-bold tracking-wider text-xs rounded-lg flex items-center gap-1.5 transition-all shadow-md ml-2';
+      restoreBtn.innerHTML = '<i class="fa-solid fa-trash-arrow-up text-[10px]"></i> Restore';
+      addBtn.parentNode.insertBefore(restoreBtn, addBtn.nextSibling);
 
-      const members = this.currentMembersList || [];
-      const fathers = members.filter(m => m.gender === 'Male');
-      const mothers = members.filter(m => m.gender === 'Female');
-      const spouses = members;
+      restoreBtn.addEventListener('click', () => this.openRestoreModal());
+    }
+  }
 
-      modal.innerHTML = `
-        <div class="w-full max-w-2xl bg-slate-900 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-fade-in" id="add-modal-card">
+  static async openRestoreModal() {
+    const modal = document.getElementById('tree-edit-modal');
+    if (!modal) return;
 
-          <!-- Header -->
-          <div class="p-6 border-b border-white/5 flex justify-between items-center bg-slate-950/40">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-full bg-emerald/10 text-emerald flex items-center justify-center text-lg">
-                <i class="fa-solid fa-user-plus"></i>
-              </div>
-              <div>
-                <h3 class="text-base font-serif font-bold text-white">Add New Family Node</h3>
-                <p class="text-[10px] text-slate-500 font-light">Insert details and connect them directly to the generations tree.</p>
-              </div>
+    modal.classList.remove('pointer-events-none', 'opacity-0');
+    modal.classList.add('opacity-100');
+
+    const allMembers = await memberService.searchMembers({ includeDeleted: true });
+    const deletedMembers = allMembers.filter(m => m.deleted === true);
+
+    modal.innerHTML = `
+      <div class="w-full max-w-md bg-slate-900 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] animate-fade-in">
+        <!-- Header -->
+        <div class="p-6 border-b border-white/5 flex justify-between items-center bg-slate-950/40">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-blue-600/10 text-blue-500 flex items-center justify-center text-lg">
+              <i class="fa-solid fa-trash-arrow-up"></i>
             </div>
-            <button id="close-add-modal-btn" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
-              <i class="fa-solid fa-xmark"></i>
-            </button>
+            <div>
+              <h3 class="text-base font-serif font-bold text-white">Restore Deleted Members</h3>
+              <p class="text-[10px] text-slate-500 font-light">Bring back archived/deleted relatives into the active family tree.</p>
+            </div>
+          </div>
+          <button id="close-restore-modal-btn" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- List -->
+        <div class="p-6 overflow-y-auto flex-grow flex flex-col gap-3 text-left">
+          ${deletedMembers.length === 0 ? `
+            <p class="text-xs text-slate-500 italic text-center py-8">No deleted members found in archives.</p>
+          ` : deletedMembers.map(m => `
+            <div class="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
+              <div class="flex items-center gap-3 min-w-0">
+                <img src="${m.avatar || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80'}" class="w-10 h-10 rounded-xl object-cover border border-white/10" />
+                <div class="flex flex-col min-w-0">
+                  <span class="text-xs font-bold text-white truncate">${m.firstName} ${m.lastName}</span>
+                  <span class="text-[10px] text-slate-400">Gen ${m.generation || 'N/A'} • ${m.gender}</span>
+                </div>
+              </div>
+              <button class="restore-member-btn px-3 h-8 bg-emerald hover:bg-emerald-hover text-slate-950 font-bold text-xs rounded-lg transition-colors shrink-0" data-id="${m.memberId || m.id}">
+                Restore
+              </button>
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- Footer -->
+        <div class="p-6 border-t border-white/5 bg-slate-950/20 flex justify-end">
+          <button id="close-restore-modal-cancel-btn" class="h-10 px-4 bg-white/5 hover:bg-white/10 text-white rounded-lg font-semibold tracking-wider uppercase text-[10px] transition-colors">Close</button>
+        </div>
+      </div>
+    `;
+
+    const closeModal = () => {
+      modal.classList.add('pointer-events-none', 'opacity-0');
+      modal.classList.remove('opacity-100');
+    };
+
+    modal.querySelector('#close-restore-modal-btn').addEventListener('click', closeModal);
+    modal.querySelector('#close-restore-modal-cancel-btn').addEventListener('click', closeModal);
+
+    modal.querySelectorAll('.restore-member-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const memberId = e.currentTarget.getAttribute('data-id');
+        try {
+          await memberService.restoreMember(memberId);
+          alert("Member successfully restored!");
+          closeModal();
+          await this.render();
+        } catch (error) {
+          alert(`Error restoring member: ${error.message}`);
+        }
+      });
+    });
+  }
+
+  static openAddModal(options = {}) {
+    const modal = document.getElementById('tree-edit-modal');
+    if (!modal) return;
+
+    modal.classList.remove('pointer-events-none', 'opacity-0');
+    modal.classList.add('opacity-100');
+
+    const members = this.currentMembersList || [];
+    const fathers = members.filter(m => m.gender === 'Male');
+    const mothers = members.filter(m => m.gender === 'Female');
+    const spouses = members;
+
+    // Default values based on options
+    const defaultGender = options.defaultGender || 'Male';
+    const relType = options.relationshipType || '';
+    const relativeId = options.relativeId || '';
+    const relativeName = relativeId ? (() => {
+      const match = members.find(m => m.id === relativeId);
+      return match ? `${match.firstName} ${match.lastName}` : '';
+    })() : '';
+
+    let headerSubtitle = "Insert details and connect them directly to the generations tree.";
+    if (relativeId && relType) {
+      headerSubtitle = `Creating a new relative to connect as <span class="text-gold font-bold">${relType}</span> of <span class="text-emerald font-bold">${relativeName}</span>.`;
+    }
+
+    modal.innerHTML = `
+      <div class="w-full max-w-2xl bg-slate-900 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-fade-in" id="add-modal-card">
+
+        <!-- Header -->
+        <div class="p-6 border-b border-white/5 flex justify-between items-center bg-slate-950/40">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-emerald/10 text-emerald flex items-center justify-center text-lg">
+              <i class="fa-solid fa-user-plus"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-serif font-bold text-white">Add New Family Node</h3>
+              <p class="text-[10px] text-slate-500 font-light">${headerSubtitle}</p>
+            </div>
+          </div>
+          <button id="close-add-modal-btn" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- Scrollable Form -->
+        <form id="node-add-form" class="p-6 overflow-y-auto flex-grow flex flex-col gap-5 text-left text-xs text-slate-300">
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">First Name</label>
+              <input type="text" id="add-firstName" required placeholder="First Name" class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold"/>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Middle Name</label>
+              <input type="text" id="add-middleName" placeholder="Middle Name" class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold"/>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Last Name</label>
+              <input type="text" id="add-lastName" required placeholder="Last Name" class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold"/>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Nickname</label>
+              <input type="text" id="add-nickname" placeholder="Nickname" class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold"/>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Gender</label>
+              <select id="add-gender" required class="h-10 px-2 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold">
+                <option value="Male" ${defaultGender === 'Male' ? 'selected' : ''}>Male</option>
+                <option value="Female" ${defaultGender === 'Female' ? 'selected' : ''}>Female</option>
+                <option value="Unknown" ${defaultGender === 'Unknown' ? 'selected' : ''}>Unknown</option>
+              </select>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Role Description</label>
+              <input type="text" id="add-role" placeholder="e.g. Grandchild / Engineer" class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold"/>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Generation</label>
+              <select id="add-generation" required class="h-10 px-2 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold">
+                <option value="1">Generation 1 (Patriarchs)</option>
+                <option value="2">Generation 2 (Parents)</option>
+                <option value="3" selected>Generation 3 (Grandchildren)</option>
+                <option value="4">Generation 4 (Next-Gen)</option>
+              </select>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Living Status</label>
+              <select id="add-living-status" required class="h-10 px-2 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold">
+                <option value="Living">Living</option>
+                <option value="Deceased">Deceased</option>
+              </select>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Branch</label>
+              <input type="text" id="add-branch" placeholder="e.g. Lagos" class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold"/>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Date of Birth</label>
+              <input type="date" id="add-birthDate" class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold"/>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Place of Birth</label>
+              <input type="text" id="add-birthPlace" placeholder="e.g. Lagos, Nigeria" class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold"/>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Photo URL (Optional)</label>
+              <input type="url" id="add-avatar" placeholder="https://..." class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold"/>
+            </div>
           </div>
 
-          <!-- Scrollable Form -->
-          <form id="node-add-form" class="p-6 overflow-y-auto flex-grow flex flex-col gap-5 text-left text-xs text-slate-300">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Notes / Biography</label>
+            <textarea id="add-biography" rows="3" placeholder="Brief notes or chronicle story..." class="p-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold resize-none"></textarea>
+          </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">First Name</label>
-                <input type="text" id="add-firstName" required placeholder="First Name" class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold"/>
-              </div>
-              <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Last Name</label>
-                <input type="text" id="add-lastName" required placeholder="Last Name" class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold"/>
-              </div>
-              <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Nickname</label>
-                <input type="text" id="add-nickname" placeholder="Nickname" class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold"/>
-              </div>
-              <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Gender</label>
-                <select id="add-gender" required class="h-10 px-2 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold">
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Unknown">Unknown</option>
-                </select>
-              </div>
-              <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Role Description</label>
-                <input type="text" id="add-role" placeholder="e.g. Grandchild / Engineer" class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold"/>
-              </div>
-              <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Generation</label>
-                <select id="add-generation" required class="h-10 px-2 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold">
-                  <option value="1">Generation 1 (Patriarchs)</option>
-                  <option value="2">Generation 2 (Parents)</option>
-                  <option value="3" selected>Generation 3 (Grandchildren)</option>
-                  <option value="4">Generation 4 (Next-Gen)</option>
-                </select>
-              </div>
-              <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Date of Birth</label>
-                <input type="date" id="add-birthDate" class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold"/>
-              </div>
-              <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Place of Birth</label>
-                <input type="text" id="add-birthPlace" placeholder="e.g. Lagos, Nigeria" class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold"/>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Photo URL (Placeholder)</label>
-                <input type="url" id="add-avatar" placeholder="https://..." class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold"/>
-              </div>
-              <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Attached Doc Title (Placeholder)</label>
-                <input type="text" id="add-doc-title" placeholder="e.g. Birth Certificate" class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold"/>
-              </div>
-            </div>
-
-            <div class="flex flex-col gap-1.5">
-              <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Biography Teaser</label>
-              <textarea id="add-biography" rows="3" placeholder="Brief chronicle story..." class="p-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold resize-none"></textarea>
-            </div>
-
-            <!-- Connections section -->
+          <!-- Lineage connections dropdowns -->
+          ${relativeId ? '' : `
             <div class="border-t border-white/5 pt-4">
               <h4 class="text-white font-serif font-semibold text-xs tracking-wide mb-3 flex items-center gap-1.5">
                 <i class="fa-solid fa-link text-emerald"></i> Set Lineage Connections
@@ -228,72 +357,95 @@ export class Tree {
                 </div>
               </div>
             </div>
+          `}
 
-            <!-- Actions footer -->
-            <div class="border-t border-white/5 pt-5 flex items-center justify-end gap-2.5">
-              <button type="button" id="add-cancel-btn" class="h-10 px-4 bg-white/5 hover:bg-white/10 text-white rounded-lg font-semibold tracking-wider uppercase text-[10px] transition-colors">Cancel</button>
-              <button type="submit" id="add-submit-btn" class="h-10 px-6 bg-emerald text-slate-950 hover:bg-emerald-hover rounded-lg font-bold tracking-wider uppercase text-[10px] transition-colors">Create Relative</button>
-            </div>
+          <!-- Actions footer -->
+          <div class="border-t border-white/5 pt-5 flex items-center justify-end gap-2.5">
+            <button type="button" id="add-cancel-btn" class="h-10 px-4 bg-white/5 hover:bg-white/10 text-white rounded-lg font-semibold tracking-wider uppercase text-[10px] transition-colors">Cancel</button>
+            <button type="submit" id="add-submit-btn" class="h-10 px-6 bg-emerald text-slate-950 hover:bg-emerald-hover rounded-lg font-bold tracking-wider uppercase text-[10px] transition-colors">Create Relative</button>
+          </div>
 
-          </form>
-        </div>
-      `;
+        </form>
+      </div>
+    `;
 
-      const closeAddModal = () => {
-        modal.classList.add('pointer-events-none', 'opacity-0');
-        modal.classList.remove('opacity-100');
+    const closeAddModal = () => {
+      modal.classList.add('pointer-events-none', 'opacity-0');
+      modal.classList.remove('opacity-100');
+    };
+
+    modal.querySelector('#close-add-modal-btn').addEventListener('click', closeAddModal);
+    modal.querySelector('#add-cancel-btn').addEventListener('click', closeAddModal);
+
+    modal.querySelector('#node-add-form').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+
+      const submitBtn = modal.querySelector('#add-submit-btn');
+      if (submitBtn.disabled) return;
+      submitBtn.disabled = true;
+      const originalText = submitBtn.innerHTML;
+      submitBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Creating...`;
+
+      const firstName = modal.querySelector('#add-firstName').value.trim();
+      const middleName = modal.querySelector('#add-middleName').value.trim();
+      const lastName = modal.querySelector('#add-lastName').value.trim();
+      const nickname = modal.querySelector('#add-nickname').value.trim();
+      const gender = modal.querySelector('#add-gender').value;
+      const role = modal.querySelector('#add-role').value.trim() || "Family Member";
+      const generation = parseInt(modal.querySelector('#add-generation').value);
+      const livingStatus = modal.querySelector('#add-living-status').value;
+      const branch = modal.querySelector('#add-branch').value.trim() || "Lagos";
+      const birthDate = modal.querySelector('#add-birthDate').value;
+      const birthPlace = modal.querySelector('#add-birthPlace').value.trim();
+      const avatar = modal.querySelector('#add-avatar').value.trim() || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80";
+      const biography = modal.querySelector('#add-biography').value.trim();
+
+      const newMember = {
+        firstName,
+        middleName,
+        lastName,
+        nickname,
+        gender,
+        role,
+        generation,
+        living: livingStatus === 'Living',
+        status: livingStatus,
+        branch,
+        branchId: branch,
+        notes: biography,
+        birthDate,
+        birthPlace,
+        avatar,
+        biography,
+        education: { university: "Awaiting inputs" },
+        timeline: []
       };
 
-      modal.querySelector('#close-add-modal-btn').addEventListener('click', closeAddModal);
-      modal.querySelector('#add-cancel-btn').addEventListener('click', closeAddModal);
+      try {
+        const valResult = memberService.validateMember(newMember);
+        if (!valResult.isValid) {
+          throw new Error(valResult.errors.join("; "));
+        }
 
-      // Handle form submission
-      modal.querySelector('#node-add-form').addEventListener('submit', async (ev) => {
-        ev.preventDefault();
+        const memberId = await memberService.createMember(newMember);
 
-        // Prevent double submission
-        const submitBtn = modal.querySelector('#add-submit-btn');
-        if (submitBtn.disabled) return;
-        submitBtn.disabled = true;
-        const originalText = submitBtn.innerHTML;
-        submitBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Creating...`;
+        if (relativeId && relType) {
+          if (relType === 'BIOLOGICAL_FATHER') {
+            await relationshipService.addFather(relativeId, memberId);
+          } else if (relType === 'BIOLOGICAL_MOTHER') {
+            await relationshipService.addMother(relativeId, memberId);
+          } else if (relType === 'CHILD') {
+            await relationshipService.addChild(relativeId, memberId);
+          } else if (relType === 'SPOUSE') {
+            await relationshipService.addSpouse(relativeId, memberId);
+          } else if (relType === 'FORMER_SPOUSE') {
+            await relationshipService.addFormerSpouse(relativeId, memberId);
+          }
+        } else {
+          const fatherId = modal.querySelector('#add-father')?.value || null;
+          const motherId = modal.querySelector('#add-mother')?.value || null;
+          const spouseId = modal.querySelector('#add-spouse')?.value || null;
 
-        const firstName = modal.querySelector('#add-firstName').value.trim();
-        const lastName = modal.querySelector('#add-lastName').value.trim();
-        const nickname = modal.querySelector('#add-nickname').value.trim();
-        const gender = modal.querySelector('#add-gender').value;
-        const role = modal.querySelector('#add-role').value.trim() || "Family Member";
-        const generation = parseInt(modal.querySelector('#add-generation').value);
-        const birthDate = modal.querySelector('#add-birthDate').value;
-        const birthPlace = modal.querySelector('#add-birthPlace').value.trim();
-        const avatar = modal.querySelector('#add-avatar').value.trim() || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80";
-        const biography = modal.querySelector('#add-biography').value.trim();
-        const fatherId = modal.querySelector('#add-father').value || null;
-        const motherId = modal.querySelector('#add-mother').value || null;
-        const spouseId = modal.querySelector('#add-spouse').value || null;
-
-        const newMember = {
-          firstName,
-          lastName,
-          nickname,
-          gender,
-          role,
-          generation,
-          birthDate,
-          birthPlace,
-          living: true,
-          status: "Living",
-          avatar,
-          biography,
-          education: { university: "Awaiting inputs" },
-          timeline: []
-        };
-
-        try {
-          // Call member service
-          const memberId = await memberService.createMember(newMember);
-
-          // Build relationships
           if (fatherId) {
             await relationshipService.addFather(memberId, fatherId);
           }
@@ -303,15 +455,15 @@ export class Tree {
           if (spouseId) {
             await relationshipService.addSpouse(memberId, spouseId);
           }
-
-          closeAddModal();
-          await this.render();
-        } catch (error) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = originalText;
-          alert(`Error: ${error.message}`);
         }
-      });
+
+        closeAddModal();
+        await this.render();
+      } catch (error) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        alert(`Error: ${error.message}`);
+      }
     });
   }
 
@@ -810,16 +962,18 @@ export class Tree {
       startY = e.clientY - transformY;
     });
 
-    window.addEventListener('mousemove', (e) => {
+    window.mousemoveHandler = (e) => {
       if (!isDragging) return;
       transformX = e.clientX - startX;
       transformY = e.clientY - startY;
       applyTransform();
-    });
+    };
+    window.addEventListener('mousemove', window.mousemoveHandler);
 
-    window.addEventListener('mouseup', () => {
+    window.mouseupHandler = () => {
       isDragging = false;
-    });
+    };
+    window.addEventListener('mouseup', window.mouseupHandler);
 
     // Touch Support with basic pinch/zoom
     let lastTouchDist = 0;
@@ -1063,8 +1217,31 @@ export class Tree {
     });
   }
 
+  // Helper to expand collapsed ancestors upward so the targeted member becomes visible
+  static expandAncestors(memberId) {
+    let currentId = memberId;
+    while (currentId) {
+      const current = this.currentMembersList.find(m => m.id === currentId);
+      if (!current) break;
+
+      if (current.fatherId) {
+        collapsedNodes.delete(current.fatherId);
+      }
+      if (current.motherId) {
+        collapsedNodes.delete(current.motherId);
+      }
+
+      // Traverse upwards to parent nodes
+      currentId = current.fatherId || current.motherId;
+    }
+  }
+
   // Smooth focus center camera on selected relative
-  static centerOnMember(memberId) {
+  static async centerOnMember(memberId) {
+    // Expand parents/ancestors first
+    this.expandAncestors(memberId);
+    await this.render();
+
     const coord = this.coordinates ? this.coordinates[memberId] : null;
     if (!coord) return;
 
@@ -1117,7 +1294,7 @@ export class Tree {
   }
 
   // View Quick Side Drawer
-  static openQuickView(member) {
+  static async openQuickView(member) {
     const drawer = document.getElementById('quick-view-drawer');
     if (!drawer) return;
 
@@ -1129,11 +1306,47 @@ export class Tree {
 
     const isLiving = member.status === 'Living';
 
+    // Live data fetching from Firestore/Simulation layers
+    const father = await getFather(member.id);
+    const mother = await getMother(member.id);
+    const parents = await getParents(member.id);
+    const children = await getChildren(member.id);
+    const currentSpouses = await getCurrentSpouses(member.id);
+    const formerSpouses = await getFormerSpouses(member.id);
+    const siblings = await getSiblings(member.id);
+
+    // Fetch related documents matching member name
+    const allDocs = await documentService.getAllDocuments();
+    const matchedDocs = allDocs.filter(d =>
+      d.memberId === member.id ||
+      d.title.toLowerCase().includes(member.firstName.toLowerCase())
+    );
+
+    // Fetch related media gallery files
+    const allMedia = await mediaService.getAllMedia();
+    const matchedMedia = allMedia.filter(m =>
+      m.memberId === member.id ||
+      (m.caption && m.caption.toLowerCase().includes(member.firstName.toLowerCase()))
+    );
+
+    // Relationship summary to active logged-in user
+    const loggedUser = JSON.parse(localStorage.getItem('lawal_current_user') || '{}');
+    let summaryText = "No active user session";
+    if (loggedUser && (loggedUser.uid || loggedUser.id)) {
+      const loggedId = loggedUser.uid || loggedUser.id;
+      if (loggedId === member.id) {
+        summaryText = "You (This is your own profile)";
+      } else {
+        const computedRel = await findRelationship(member.id, loggedId);
+        summaryText = computedRel === 'UNRELATED' ? 'Extended Relative' : computedRel;
+      }
+    }
+
     drawer.innerHTML = `
-      <div class="flex flex-col gap-6 text-left">
+      <div class="flex flex-col gap-6 text-left pb-12">
         <!-- Close button & title -->
         <div class="flex items-center justify-between border-b border-white/5 pb-4">
-          <span class="font-serif text-lg font-bold text-white tracking-wide">Quick Profile</span>
+          <span class="font-serif text-lg font-bold text-white tracking-wide">Quick Profile Drawer</span>
           <button id="close-drawer-btn" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
             <i class="fa-solid fa-xmark"></i>
           </button>
@@ -1142,55 +1355,162 @@ export class Tree {
         <!-- Meta card -->
         <div class="flex items-center gap-4">
           <img src="${member.avatar}" alt="${member.firstName}" class="w-16 h-16 rounded-2xl object-cover border border-gold/30">
-          <div class="flex flex-col">
-            <h3 class="text-lg font-serif font-bold text-white">${member.firstName} ${member.lastName}</h3>
-            <span class="text-xs text-gold">"${member.nickname || 'None'}"</span>
-            <span class="text-[11px] text-slate-500 font-light mt-0.5">${member.role}</span>
+          <div class="flex flex-col min-w-0">
+            <h3 class="text-lg font-serif font-bold text-white truncate">${member.firstName} ${member.lastName}</h3>
+            <span class="text-xs text-gold truncate">"${member.nickname || 'None'}"</span>
+            <span class="text-[11px] text-slate-500 font-light mt-0.5 truncate">${member.role}</span>
           </div>
         </div>
 
-        <!-- Brief stats grid -->
-        <div class="grid grid-cols-2 gap-3.5 text-xs">
+        <!-- Relationship Summary Pill -->
+        <div class="p-3.5 bg-gold/10 border border-gold/20 rounded-xl flex flex-col gap-1">
+          <span class="text-[9px] uppercase tracking-wider text-gold font-bold"><i class="fa-solid fa-network-wired"></i> Connection to You</span>
+          <span class="text-xs text-white font-medium">${summaryText}</span>
+        </div>
+
+        <!-- Demographics Grid -->
+        <div class="grid grid-cols-2 gap-3 text-xs">
           <div class="bg-white/5 p-3 rounded-xl border border-white/5">
-            <span class="text-[10px] text-slate-500 block uppercase font-medium">DOB / Age</span>
-            <span class="text-slate-200 mt-1 block">${member.birthDate || 'N/A'} (${this.calculateAge(member.birthDate)} yrs)</span>
+            <span class="text-[10px] text-slate-500 block uppercase font-semibold">DOB / Age</span>
+            <span class="text-slate-200 mt-1 block font-medium">${member.birthDate || 'N/A'} (${this.calculateAge(member.birthDate)} yrs)</span>
           </div>
           <div class="bg-white/5 p-3 rounded-xl border border-white/5">
-            <span class="text-[10px] text-slate-500 block uppercase font-medium">Status</span>
-            <span class="text-slate-200 mt-1 block flex items-center gap-1.5">
+            <span class="text-[10px] text-slate-500 block uppercase font-semibold">Status</span>
+            <span class="text-slate-200 mt-1 block flex items-center gap-1.5 font-medium">
               <span class="w-1.5 h-1.5 rounded-full ${isLiving ? 'bg-emerald' : 'bg-slate-500'}"></span>
               ${member.status}
             </span>
           </div>
-          <div class="bg-white/5 p-3 rounded-xl border border-white/5">
-            <span class="text-[10px] text-slate-500 block uppercase font-medium">Place of Birth</span>
-            <span class="text-slate-200 mt-1 block truncate" title="${member.birthPlace || 'N/A'}">${member.birthPlace || 'N/A'}</span>
-          </div>
-          <div class="bg-white/5 p-3 rounded-xl border border-white/5">
-            <span class="text-[10px] text-slate-500 block uppercase font-medium">Occupation</span>
-            <span class="text-slate-200 mt-1 block truncate" title="${member.career?.occupation || 'N/A'}">${member.career?.occupation || 'N/A'}</span>
+          <div class="bg-white/5 p-3 rounded-xl border border-white/5 col-span-2">
+            <span class="text-[10px] text-slate-500 block uppercase font-semibold">Place of Birth</span>
+            <span class="text-slate-200 mt-1 block truncate font-medium" title="${member.birthPlace || 'N/A'}">${member.birthPlace || 'N/A'}</span>
           </div>
         </div>
 
-        <!-- Small Biography teaser -->
+        <!-- Career / Occupation Section -->
+        <div class="bg-white/5 p-4 rounded-xl border border-white/5 flex flex-col gap-1.5">
+          <span class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold flex items-center gap-1.5">
+            <i class="fa-solid fa-briefcase text-gold/80"></i> Occupation & Career
+          </span>
+          <span class="text-xs text-slate-200 font-bold">${member.career?.occupation || member.role || 'Family Member'}</span>
+          <p class="text-[11px] text-slate-400 font-light mt-1">${member.career?.history || 'No professional chronicle recorded.'}</p>
+        </div>
+
+        <!-- Military Service Section -->
+        <div class="bg-white/5 p-4 rounded-xl border border-white/5 flex flex-col gap-1.5">
+          <span class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold flex items-center gap-1.5">
+            <i class="fa-solid fa-shield-halved text-gold/80"></i> Military Service
+          </span>
+          <span class="text-xs text-slate-200 font-bold">${member.military?.service && member.military.service !== "None" ? member.military.service : 'No Military Service Record'}</span>
+          ${member.military?.history ? `<p class="text-[11px] text-slate-400 font-light mt-1">${member.military.history}</p>` : ''}
+        </div>
+
+        <!-- Lineage Contacts List (Parents, Children, Spouses, Siblings) -->
+        <div class="flex flex-col gap-2.5">
+          <span class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold border-b border-white/5 pb-1">Lineage Connections</span>
+          <div class="flex flex-col gap-1.5 text-xs">
+            <!-- Parents -->
+            ${father ? `
+              <div class="flex items-center justify-between p-2 bg-slate-900/60 border border-white/5 rounded-lg">
+                <span class="text-slate-400">Father</span>
+                <span class="text-white font-semibold cursor-pointer hover:text-gold" onclick="Tree.centerOnMember('${father.memberId}')">${father.firstName} ${father.lastName}</span>
+              </div>
+            ` : ''}
+            ${mother ? `
+              <div class="flex items-center justify-between p-2 bg-slate-900/60 border border-white/5 rounded-lg">
+                <span class="text-slate-400">Mother</span>
+                <span class="text-white font-semibold cursor-pointer hover:text-gold" onclick="Tree.centerOnMember('${mother.memberId}')">${mother.firstName} ${mother.lastName}</span>
+              </div>
+            ` : ''}
+            <!-- Spouses -->
+            ${currentSpouses.map(s => `
+              <div class="flex items-center justify-between p-2 bg-slate-900/60 border border-white/5 rounded-lg">
+                <span class="text-gold">Spouse</span>
+                <span class="text-white font-semibold cursor-pointer hover:text-gold" onclick="Tree.centerOnMember('${s.memberId}')">${s.firstName} ${s.lastName}</span>
+              </div>
+            `).join('')}
+            ${formerSpouses.map(s => `
+              <div class="flex items-center justify-between p-2 bg-slate-900/60 border border-white/5 rounded-lg">
+                <span class="text-slate-500">Former Spouse</span>
+                <span class="text-white font-semibold cursor-pointer hover:text-gold" onclick="Tree.centerOnMember('${s.memberId}')">${s.firstName} ${s.lastName}</span>
+              </div>
+            `).join('')}
+            <!-- Children -->
+            ${children.map(c => `
+              <div class="flex items-center justify-between p-2 bg-slate-900/60 border border-white/5 rounded-lg">
+                <span class="text-emerald">Child</span>
+                <span class="text-white font-semibold cursor-pointer hover:text-gold" onclick="Tree.centerOnMember('${c.memberId}')">${c.firstName} ${c.lastName}</span>
+              </div>
+            `).join('')}
+            <!-- Siblings -->
+            ${siblings.map(s => `
+              <div class="flex items-center justify-between p-2 bg-slate-900/60 border border-white/5 rounded-lg">
+                <span class="text-blue-400">Sibling</span>
+                <span class="text-white font-semibold cursor-pointer hover:text-gold" onclick="Tree.centerOnMember('${s.memberId}')">${s.firstName} ${s.lastName}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Timeline / Chronological Milestones -->
+        <div class="flex flex-col gap-2">
+          <span class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold border-b border-white/5 pb-1">Timeline & Milestones</span>
+          <div class="flex flex-col gap-3 mt-1.5">
+            ${(member.timeline || []).length === 0 ? `
+              <span class="text-xs text-slate-500 italic">No milestones recorded.</span>
+            ` : member.timeline.map(evt => `
+              <div class="flex gap-3 text-xs text-left relative">
+                <div class="w-1.5 h-1.5 rounded-full bg-gold mt-1.5 shrink-0"></div>
+                <div>
+                  <span class="font-bold text-white">${evt.year} — ${evt.title}</span>
+                  <p class="text-slate-400 font-light text-[11px] mt-0.5">${evt.description}</p>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Attached Documents -->
+        <div class="flex flex-col gap-2">
+          <span class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold border-b border-white/5 pb-1">Documents Vault</span>
+          <div class="flex flex-col gap-1.5 mt-1">
+            ${matchedDocs.length === 0 ? `
+              <span class="text-xs text-slate-500 italic">No attached documents found.</span>
+            ` : matchedDocs.map(d => `
+              <div class="p-2.5 bg-white/5 border border-white/5 rounded-lg flex items-center justify-between text-xs">
+                <div class="flex items-center gap-2 min-w-0">
+                  <i class="fa-solid fa-file-pdf text-red-400"></i>
+                  <span class="text-white font-medium truncate" title="${d.title}">${d.title}</span>
+                </div>
+                <span class="text-[10px] text-slate-500 shrink-0">${d.size || 'PDF'}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Gallery / Photos Section -->
+        <div class="flex flex-col gap-2">
+          <span class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold border-b border-white/5 pb-1">Gallery Album</span>
+          <div class="grid grid-cols-3 gap-2 mt-1">
+            ${matchedMedia.length === 0 ? `
+              <div class="col-span-3 text-xs text-slate-500 italic py-2">No photos in personal album yet.</div>
+            ` : matchedMedia.map(m => `
+              <img src="${m.url}" alt="${m.caption || 'Photo'}" class="w-full h-16 object-cover rounded-lg border border-white/10 hover:scale-105 transition-transform" />
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Brief Biography Story -->
         <div class="flex flex-col gap-1.5">
-          <span class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">Short Chronicle</span>
+          <span class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Biography Chronicle</span>
           <p class="text-xs text-slate-400 font-light leading-relaxed bg-slate-900/60 p-3.5 border border-white/5 rounded-xl max-h-40 overflow-y-auto">
             ${member.biography || 'No biography recorded yet.'}
           </p>
         </div>
-
-        <!-- Educational snapshot -->
-        <div class="flex flex-col gap-2 bg-white/5 p-4 rounded-xl border border-white/5">
-          <span class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold flex items-center gap-1.5">
-            <i class="fa-solid fa-graduation-cap text-gold/80"></i> Academic background
-          </span>
-          <span class="text-xs text-slate-300 font-light">${member.education?.university || 'None recorded'}</span>
-        </div>
       </div>
 
       <!-- Button actions -->
-      <div class="flex flex-col gap-2 mt-8">
+      <div class="flex flex-col gap-2 border-t border-white/5 pt-4 bg-slate-950 sticky bottom-0 z-30">
         <a href="member.html?id=${member.id}" class="h-10 bg-gold text-slate-950 font-semibold text-xs tracking-wider uppercase rounded-xl flex items-center justify-center gap-2 hover:bg-gold-hover transition-colors">
           Full Timeline Chronicles <i class="fa-solid fa-arrow-right-long"></i>
         </a>
@@ -1220,10 +1540,13 @@ export class Tree {
         }, 300);
       });
     }
+
+    // Expose Tree on window so global click handlers can invoke centerOnMember
+    window.Tree = Tree;
   }
 
   // Open the detailed Add/Edit relation modification Modal
-  static openEditModal(member) {
+  static async openEditModal(member) {
     const modal = document.getElementById('tree-edit-modal');
     if (!modal) return;
 
@@ -1231,7 +1554,24 @@ export class Tree {
     modal.classList.add('opacity-100');
 
     const parents = this.currentMembersList.filter(m => m.gender === 'Male' && m.id !== member.id);
+    const mothersList = this.currentMembersList.filter(m => m.gender === 'Female' && m.id !== member.id);
     const spouses = this.currentMembersList.filter(m => m.id !== member.id);
+
+    // Fetch and enrich the exact relationships linked to this specific node to support dynamic Remove Relationship actions
+    const allRels = await relationshipRepository.findAll();
+    const memberRels = allRels.filter(r => r.personA === member.id || r.personB === member.id);
+
+    // Map connected names
+    const enrichedRels = memberRels.map(r => {
+      const otherId = r.personA === member.id ? r.personB : r.personA;
+      const matchedOther = this.currentMembersList.find(x => x.id === otherId);
+      const otherName = matchedOther ? `${matchedOther.firstName} ${matchedOther.lastName}` : otherId;
+      return {
+        ...r,
+        otherName,
+        otherId
+      };
+    });
 
     modal.innerHTML = `
       <div class="w-full max-w-2xl bg-slate-900 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-fade-in" id="edit-modal-card">
@@ -1303,26 +1643,52 @@ export class Tree {
             <textarea id="edit-biography" rows="4" class="p-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold resize-none">${member.biography || ''}</textarea>
           </div>
 
-          <!-- Relationships Connection section -->
+          <!-- Active Relationships list to allow Removal of Relationships -->
           <div class="border-t border-white/5 pt-4">
             <h4 class="text-white font-serif font-semibold text-xs tracking-wide mb-3 flex items-center gap-1.5">
-              <i class="fa-solid fa-diagram-project text-emerald"></i> Tree Connections & Structure
+              <i class="fa-solid fa-link text-gold"></i> Connected Relationships (${enrichedRels.length})
             </h4>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Father</label>
-                <select id="edit-father" class="h-10 px-2 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold">
-                  <option value="">-- None --</option>
-                  ${parents.map(p => `<option value="${p.id}" ${member.fatherId === p.id ? 'selected' : ''}>${p.firstName} ${p.lastName}</option>`).join('')}
-                </select>
-              </div>
-              <div class="flex flex-col gap-1.5">
-                <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Spouse / Partner</label>
-                <select id="edit-spouse" class="h-10 px-2 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold">
-                  <option value="">-- None --</option>
-                  ${spouses.map(s => `<option value="${s.id}" ${member.spouseId === s.id ? 'selected' : ''}>${s.firstName} ${s.lastName}</option>`).join('')}
-                </select>
-              </div>
+            <div class="flex flex-col gap-2">
+              ${enrichedRels.length === 0 ? `
+                <span class="text-slate-500 italic text-[11px]">No structural connections found.</span>
+              ` : enrichedRels.map(rel => `
+                <div class="flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-white/5">
+                  <div class="flex flex-col text-left">
+                    <span class="text-white font-semibold">${rel.otherName}</span>
+                    <span class="text-[9px] uppercase tracking-wider text-slate-400 mt-0.5">${rel.relationshipType}</span>
+                  </div>
+                  <button type="button" class="remove-rel-btn w-8 h-8 rounded-lg bg-red-600/10 hover:bg-red-600 text-red-400 hover:text-white flex items-center justify-center transition-all" data-id="${rel.relationshipId}" title="Remove Relationship">
+                    <i class="fa-solid fa-trash-can text-xs"></i>
+                  </button>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Tree Actions for adding new connections directly connected to this member -->
+          <div class="border-t border-white/5 pt-4">
+            <h4 class="text-white font-serif font-semibold text-xs tracking-wide mb-3 flex items-center gap-1.5">
+              <i class="fa-solid fa-diagram-project text-emerald"></i> Tree Actions & New Connections
+            </h4>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <button type="button" class="action-add-rel-btn h-9 bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 rounded-xl text-[10px] font-bold tracking-wider uppercase flex items-center justify-center gap-1.5" data-type="BIOLOGICAL_FATHER" data-gender="Male">
+                <i class="fa-solid fa-user-plus text-blue-400"></i> Add Father
+              </button>
+              <button type="button" class="action-add-rel-btn h-9 bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 rounded-xl text-[10px] font-bold tracking-wider uppercase flex items-center justify-center gap-1.5" data-type="BIOLOGICAL_MOTHER" data-gender="Female">
+                <i class="fa-solid fa-user-plus text-pink-400"></i> Add Mother
+              </button>
+              <button type="button" class="action-add-rel-btn h-9 bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 rounded-xl text-[10px] font-bold tracking-wider uppercase flex items-center justify-center gap-1.5" data-type="CHILD" data-gender="Male">
+                <i class="fa-solid fa-child text-emerald"></i> Add Son
+              </button>
+              <button type="button" class="action-add-rel-btn h-9 bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 rounded-xl text-[10px] font-bold tracking-wider uppercase flex items-center justify-center gap-1.5" data-type="CHILD" data-gender="Female">
+                <i class="fa-solid fa-child text-pink-400"></i> Add Daughter
+              </button>
+              <button type="button" class="action-add-rel-btn h-9 bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 rounded-xl text-[10px] font-bold tracking-wider uppercase flex items-center justify-center gap-1.5" data-type="SPOUSE" data-gender="Female">
+                <i class="fa-solid fa-ring text-gold"></i> Add Spouse
+              </button>
+              <button type="button" class="action-add-rel-btn h-9 bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 rounded-xl text-[10px] font-bold tracking-wider uppercase flex items-center justify-center gap-1.5" data-type="FORMER_SPOUSE" data-gender="Female">
+                <i class="fa-solid fa-ring text-slate-400"></i> Former Spouse
+              </button>
             </div>
           </div>
 
@@ -1355,19 +1721,49 @@ export class Tree {
       if (e.target === modal) closeModal();
     });
 
-    // Handle form submit
+    // Handle Add relative action buttons inside the edit modal
+    modal.querySelectorAll('.action-add-rel-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const type = e.currentTarget.getAttribute('data-type');
+        const defaultGender = e.currentTarget.getAttribute('data-gender');
+        closeModal();
+        this.openAddModal({
+          defaultGender,
+          relationshipType: type,
+          relativeId: member.id
+        });
+      });
+    });
+
+    // Handle Remove Relationship buttons
+    modal.querySelectorAll('.remove-rel-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const relId = e.currentTarget.getAttribute('data-id');
+        if (confirm("Are you completely sure you want to disconnect this relationship connection?")) {
+          try {
+            await relationshipService.removeRelationship(relId);
+            alert("Relationship removed successfully!");
+            closeModal();
+            await this.render();
+          } catch (error) {
+            alert(`Error: ${error.message}`);
+          }
+        }
+      });
+    });
+
+    // Handle form submit for basic details updating
     const editForm = modal.querySelector('#node-edit-form');
     editForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      // Prevent double submission
       const submitBtn = modal.querySelector('#edit-submit-btn');
       if (submitBtn.disabled) return;
       submitBtn.disabled = true;
       const originalText = submitBtn.innerHTML;
       submitBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Saving...`;
 
-      // Read values
       const updateData = {
         firstName: modal.querySelector('#edit-firstName').value.trim(),
         lastName: modal.querySelector('#edit-lastName').value.trim(),
@@ -1382,37 +1778,8 @@ export class Tree {
         living: modal.querySelector('#edit-status').value === 'Living'
       };
 
-      const fatherId = modal.querySelector('#edit-father').value || null;
-      const spouseId = modal.querySelector('#edit-spouse').value || null;
-
       try {
-        // Save Updates using memberService
         await memberService.updateMember(member.id, updateData);
-
-        // Update relationships if father changed
-        if (fatherId !== member.fatherId) {
-          const existingRels = await relationshipRepository.findAll();
-          const prevFatherRel = existingRels.find(r => r.relationshipType === "BIOLOGICAL_FATHER" && r.personB === member.id);
-          if (prevFatherRel) {
-            await relationshipService.removeRelationship(prevFatherRel.relationshipId);
-          }
-          if (fatherId) {
-            await relationshipService.addFather(member.id, fatherId);
-          }
-        }
-
-        // Update relationships if spouse changed
-        if (spouseId !== member.spouseId) {
-          const existingRels = await relationshipRepository.findAll();
-          const prevSpouseRel = existingRels.find(r => r.relationshipType === "SPOUSE" && r.status === "Current" && (r.personA === member.id || r.personB === member.id));
-          if (prevSpouseRel) {
-            await relationshipService.removeRelationship(prevSpouseRel.relationshipId);
-          }
-          if (spouseId) {
-            await relationshipService.addSpouse(member.id, spouseId);
-          }
-        }
-
         closeModal();
         await this.render();
       } catch (error) {
@@ -1422,7 +1789,7 @@ export class Tree {
       }
     });
 
-    // Delete Member
+    // Delete Member (Soft Delete)
     modal.querySelector('#delete-node-btn').addEventListener('click', async () => {
       if (confirm(`Are you completely sure you want to delete ${member.firstName} ${member.lastName} and disconnect all relations?`)) {
         try {
