@@ -8,11 +8,14 @@
 // Supported user roles in the House of Lawal Private Portal
 export const ROLES = {
   SUPER_ADMIN: "SUPER_ADMIN",     // Absolute control (Portal Configuration, Role assignment)
+  ADMIN: "ADMIN",                 // High administrative authority
   FAMILY_ADMIN: "FAMILY_ADMIN",   // High management authority over specific branches and family data
   BRANCH_ADMIN: "BRANCH_ADMIN",   // Admin of specific geo-branch (Lagos, London, US, Abuja)
   HISTORIAN: "HISTORIAN",         // Authority to manage ancestral lineages and timeline documentation
   EDITOR: "EDITOR",               // General read/write edits access to records, calendar, gallery
+  CONTRIBUTOR: "CONTRIBUTOR",     // Can add members, documents, and media
   MEMBER: "MEMBER",               // General family relative with normal viewing & safe personal edits
+  VIEWER: "VIEWER",               // Read-only restricted view
   GUEST: "GUEST"                  // Read-only restricted view
 };
 
@@ -45,12 +48,14 @@ export function hasRole(user, role) {
 export function canEdit(user) {
   if (!user) return false;
 
-  // High level roles and editor roles can edit
+  // High level roles, editors, and contributors can edit/add
   return hasRole(user, ROLES.SUPER_ADMIN) ||
+         hasRole(user, ROLES.ADMIN) ||
          hasRole(user, ROLES.FAMILY_ADMIN) ||
          hasRole(user, ROLES.BRANCH_ADMIN) ||
          hasRole(user, ROLES.HISTORIAN) ||
-         hasRole(user, ROLES.EDITOR);
+         hasRole(user, ROLES.EDITOR) ||
+         hasRole(user, ROLES.CONTRIBUTOR);
 }
 
 /**
@@ -75,5 +80,6 @@ export function canDelete(user) {
   if (!user) return false;
 
   return hasRole(user, ROLES.SUPER_ADMIN) ||
+         hasRole(user, ROLES.ADMIN) ||
          hasRole(user, ROLES.FAMILY_ADMIN);
 }

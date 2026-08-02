@@ -347,6 +347,9 @@ export async function loginUser(email, password) {
       const userDocSnap = await getDoc(userDocRef);
       if (userDocSnap.exists()) {
         userData = userDocSnap.data();
+        if (userData.active === false) {
+          throw new Error("auth/user-disabled");
+        }
         userData.lastLogin = lastLoginTime;
         userData.emailVerified = user.emailVerified;
         await updateDoc(userDocRef, {
@@ -436,6 +439,10 @@ export async function loginUser(email, password) {
 
     if (!matched) {
       throw new Error("auth/user-not-found");
+    }
+
+    if (matched.active === false) {
+      throw new Error("auth/user-disabled");
     }
 
     // Verify simulated password

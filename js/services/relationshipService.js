@@ -36,8 +36,8 @@ function enforcePermission() {
     throw new PermissionDenied("Authentication required to perform this action.");
   }
 
-  // SUPER_ADMIN, FAMILY_ADMIN, BRANCH_ADMIN, HISTORIAN can manage genealogy/relationships
-  const allowed = [ROLES.SUPER_ADMIN, ROLES.FAMILY_ADMIN, ROLES.BRANCH_ADMIN, ROLES.HISTORIAN];
+  // SUPER_ADMIN, ADMIN, FAMILY_ADMIN, BRANCH_ADMIN, HISTORIAN can manage genealogy/relationships
+  const allowed = [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.FAMILY_ADMIN, ROLES.BRANCH_ADMIN, ROLES.HISTORIAN, ROLES.EDITOR];
   for (const role of allowed) {
     if (hasRole(user, role)) {
       return user;

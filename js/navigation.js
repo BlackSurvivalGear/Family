@@ -1,7 +1,7 @@
 import { Auth } from './auth.js';
 import { DB } from './db.js';
 import { app, auth, db } from './firebase/firebase.js';
-import { canView, canEdit, canDelete } from './firebase/permissions.js';
+import { canView, canEdit, canDelete, hasRole, ROLES } from './firebase/permissions.js';
 import { initializeAuth, authCheckPromise } from './firebase/auth.js';
 
 // Hide the document early to prevent page flicker for protected views
@@ -62,6 +62,10 @@ export class Navigation {
       { file: 'profile.html', icon: 'fa-id-card', label: 'My Profile' },
       { file: 'settings.html', icon: 'fa-gears', label: 'Portal Settings' },
     ];
+
+    if (hasRole(user, ROLES.SUPER_ADMIN) || hasRole(user, ROLES.ADMIN)) {
+      menuItems.push({ file: 'admin.html', icon: 'fa-user-shield', label: 'Administration' });
+    }
 
     const menuHtml = menuItems.map(item => {
       const isActive = currentFile === item.file || (item.alternativeFiles && item.alternativeFiles.includes(currentFile));
