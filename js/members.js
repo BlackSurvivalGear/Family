@@ -42,8 +42,99 @@ export class MembersDirectory {
       });
     }
 
+    // Bind Recycle Bin Button
+    const recycleBtn = document.getElementById('open-recycle-bin-btn');
+    if (recycleBtn) {
+      recycleBtn.addEventListener('click', () => {
+        this.openRecycleBinModal();
+      });
+    }
+
     // Initial render
     await this.render();
+  }
+
+  static async openRecycleBinModal() {
+    let modal = document.getElementById('recycle-bin-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'recycle-bin-modal';
+      modal.className = 'fixed inset-0 z-[100] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 transition-opacity opacity-0 pointer-events-none';
+      document.body.appendChild(modal);
+    }
+
+    modal.classList.remove('pointer-events-none', 'opacity-0');
+    modal.classList.add('opacity-100');
+
+    const allMembers = await memberService.searchMembers({ includeDeleted: true });
+    const deletedMembers = allMembers.filter(m => m.deleted === true);
+
+    modal.innerHTML = `
+      <div class="w-full max-w-md bg-slate-900 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] animate-fade-in">
+        <!-- Header -->
+        <div class="p-6 border-b border-white/5 flex justify-between items-center bg-slate-950/40">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-blue-600/10 text-blue-500 flex items-center justify-center text-lg">
+              <i class="fa-solid fa-trash-arrow-up"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-serif font-bold text-white">Recycle Bin</h3>
+              <p class="text-[10px] text-slate-500 font-light">Restore deleted relatives back to the active directory.</p>
+            </div>
+          </div>
+          <button id="close-recycle-modal-btn" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- List -->
+        <div class="p-6 overflow-y-auto flex-grow flex flex-col gap-3 text-left">
+          ${deletedMembers.length === 0 ? `
+            <p class="text-xs text-slate-500 italic text-center py-8">No deleted members found in archives.</p>
+          ` : deletedMembers.map(m => `
+            <div class="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
+              <div class="flex items-center gap-3 min-w-0">
+                <img src="${m.avatar || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80'}" class="w-10 h-10 rounded-xl object-cover border border-white/10" />
+                <div class="flex flex-col min-w-0">
+                  <span class="text-xs font-bold text-white truncate">${m.firstName} ${m.lastName}</span>
+                  <span class="text-[10px] text-slate-400">Gen ${m.generation || 'N/A'} • ${m.gender}</span>
+                </div>
+              </div>
+              <button class="restore-member-btn px-3 h-8 bg-emerald hover:bg-emerald-hover text-slate-950 font-bold text-xs rounded-lg transition-colors shrink-0" data-id="${m.memberId || m.id}">
+                Restore
+              </button>
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- Footer -->
+        <div class="p-6 border-t border-white/5 bg-slate-950/20 flex justify-end">
+          <button id="close-recycle-modal-cancel-btn" class="h-10 px-4 bg-white/5 hover:bg-white/10 text-white rounded-lg font-semibold tracking-wider uppercase text-[10px] transition-colors">Close</button>
+        </div>
+      </div>
+    `;
+
+    const closeModal = () => {
+      modal.classList.add('pointer-events-none', 'opacity-0');
+      modal.classList.remove('opacity-100');
+    };
+
+    modal.querySelector('#close-recycle-modal-btn').addEventListener('click', closeModal);
+    modal.querySelector('#close-recycle-modal-cancel-btn').addEventListener('click', closeModal);
+
+    modal.querySelectorAll('.restore-member-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const memberId = e.currentTarget.getAttribute('data-id');
+        try {
+          await memberService.restoreMember(memberId);
+          alert("Member successfully restored!");
+          closeModal();
+          await this.render();
+        } catch (error) {
+          alert(`Error restoring member: ${error.message}`);
+        }
+      });
+    });
   }
 
   static async render() {

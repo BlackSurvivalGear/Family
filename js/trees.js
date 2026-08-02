@@ -23,7 +23,7 @@ export class TreesPage {
         {
           id: "house-of-lawal",
           treeId: "house-of-lawal",
-          name: "Lawal Family Tree",
+          name: "House of Lawal",
           description: "The main Lawal ancestral tree, tracing the noble lineage of Alhaji Kolawole Lawal.",
           coverImage: "LawalNG1.png",
           themeColor: "gold",
@@ -32,7 +32,7 @@ export class TreesPage {
         {
           id: "grimster",
           treeId: "grimster",
-          name: "Grimster Family Tree",
+          name: "Grimster",
           description: "The Grimster family lineage from Bristol and London, UK.",
           coverImage: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=800&q=80",
           themeColor: "emerald",
@@ -41,7 +41,7 @@ export class TreesPage {
         {
           id: "oluwanje",
           treeId: "oluwanje",
-          name: "Oluwanje Family Tree",
+          name: "Oluwanje",
           description: "The Oluwanje family ancestral lineage from Abeokuta and Lagos, Nigeria.",
           coverImage: "https://images.unsplash.com/photo-1464695115841-35f1954577df?auto=format&fit=crop&w=800&q=80",
           themeColor: "blue",
@@ -50,7 +50,7 @@ export class TreesPage {
         {
           id: "ogunronbi",
           treeId: "ogunronbi",
-          name: "Ogunronbi Family Tree",
+          name: "Ogunronbi",
           description: "The Ogunronbi family ancestral lineage, holding rich cultural heritage.",
           coverImage: "https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=800&q=80",
           themeColor: "purple",
