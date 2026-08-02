@@ -43,14 +43,14 @@
         <!-- Background Image with zoom & gradient cover -->
         <div class="absolute inset-0 z-0">
           <div class="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/80 to-slate-950/20 z-10"></div>
-          <img src="LawalNG1.png" alt="Lawal Family Heritage Banner" class="w-full h-full object-cover opacity-35" style="object-position: center 30%;">
+          <img src="LawalNG1.png" alt="Lawal Family Heritage Banner" class="w-full h-full object-cover opacity-35" style="object-position: center 30%;" id="tree-banner-img">
         </div>
 
         <!-- Banner Content -->
         <div class="relative z-10 flex flex-col gap-1 text-left">
-          <span class="text-[9px] uppercase tracking-widest font-bold text-gold flex items-center gap-1.5"><i class="fa-solid fa-diagram-project"></i> Ancestral Repository</span>
-          <h2 class="font-serif text-lg md:text-xl font-bold text-white tracking-wide">Interactive Lineage Tree</h2>
-          <p class="text-[10px] text-slate-400 font-light leading-normal hidden md:block">Explore, map, and trace descendants of the Lawal dynasty on an infinite virtual canvas.</p>
+          <span class="text-[9px] uppercase tracking-widest font-bold text-gold flex items-center gap-1.5" id="tree-banner-tag"><i class="fa-solid fa-diagram-project"></i> Ancestral Repository</span>
+          <h2 class="font-serif text-lg md:text-xl font-bold text-white tracking-wide" id="tree-banner-title">Interactive Lineage Tree</h2>
+          <p class="text-[10px] text-slate-400 font-light leading-normal hidden md:block" id="tree-banner-desc">Explore, map, and trace descendants of the Lawal dynasty on an infinite virtual canvas.</p>
         </div>
       </div>
 
@@ -72,18 +72,26 @@
             <i class="fa-solid fa-plus text-[10px]"></i> Add Relative
           </button>
 
-          <div class="relative hidden sm:block">
-            <input
-              type="text"
-              id="tree-search-input"
-              placeholder="Find relative in tree..."
-              class="w-56 h-8 pl-8 pr-4 bg-slate-900 border border-white/10 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-gold transition-all"
-            />
-            <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]">
-              <i class="fa-solid fa-magnifying-glass"></i>
-            </span>
-            <!-- Autocomplete list popup -->
-            <div id="tree-search-autocomplete" class="hidden absolute top-9 left-0 w-full bg-slate-900 border border-white/10 rounded-lg shadow-2xl max-h-48 overflow-y-auto z-50 p-1 flex flex-col text-xs"></div>
+          <div class="relative hidden sm:block flex items-center gap-2">
+            <div class="flex items-center gap-2">
+              <select id="tree-search-scope" class="h-8 px-2 bg-slate-900 border border-white/10 rounded-lg text-xs text-slate-400 focus:outline-none focus:border-gold">
+                <option value="current">Current Tree</option>
+                <option value="all">All Trees</option>
+              </select>
+              <div class="relative">
+                <input
+                  type="text"
+                  id="tree-search-input"
+                  placeholder="Find relative..."
+                  class="w-56 h-8 pl-8 pr-4 bg-slate-900 border border-white/10 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-gold transition-all"
+                />
+                <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]">
+                  <i class="fa-solid fa-magnifying-glass"></i>
+                </span>
+                <!-- Autocomplete list popup -->
+                <div id="tree-search-autocomplete" class="hidden absolute top-9 left-0 w-full bg-slate-900 border border-white/10 rounded-lg shadow-2xl max-h-48 overflow-y-auto z-50 p-1 flex flex-col text-xs"></div>
+              </div>
+            </div>
           </div>
 
           <!-- Color Coding Indicators Legend button -->

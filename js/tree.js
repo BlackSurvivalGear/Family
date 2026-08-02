@@ -1,4 +1,5 @@
 import { DB } from './db.js';
+import * as treeRepository from './repositories/treeRepository.js';
 import * as memberService from './services/memberService.js';
 import * as relationshipService from './services/relationshipService.js';
 import * as relationshipRepository from './repositories/relationshipRepository.js';
@@ -32,13 +33,57 @@ let activeSelectedNodeId = null;
 const collapsedNodes = new Set();
 
 export class Tree {
+  static getThemeColorHex() {
+    const theme = this.treeData?.themeColor || 'gold';
+    if (theme === 'emerald') return '#10B981';
+    if (theme === 'blue') return '#3B82F6';
+    if (theme === 'purple') return '#8B5CF6';
+    return '#D4AF37'; // gold
+  }
+
+  static getThemeColorClass() {
+    const theme = this.treeData?.themeColor || 'gold';
+    if (theme === 'emerald') return 'emerald';
+    if (theme === 'blue') return 'blue-500';
+    if (theme === 'purple') return 'purple-500';
+    return 'gold';
+  }
+
+  static getThemeTextClass() {
+    const theme = this.treeData?.themeColor || 'gold';
+    if (theme === 'emerald') return 'text-emerald';
+    if (theme === 'blue') return 'text-blue-400';
+    if (theme === 'purple') return 'text-purple-400';
+    return 'text-gold';
+  }
+
   static async init() {
     DB.init();
 
     // Check query params for initial action
     const urlParams = new URLSearchParams(window.location.search);
+    const treeId = urlParams.get('treeId') || 'house-of-lawal';
     const focusId = urlParams.get('id');
     const triggerEdit = urlParams.get('edit') === 'true';
+
+    // Fetch tree repository
+    const treeData = await treeRepository.findById(treeId) || {
+      name: "House of Lawal",
+      description: "The main Lawal ancestral tree, tracing the noble lineage of Alhaji Kolawole Lawal.",
+      coverImage: "LawalNG1.png",
+      themeColor: "gold"
+    };
+
+    this.selectedTreeId = treeId;
+    this.treeData = treeData;
+
+    // Dynamically update banner elements
+    const titleEl = document.getElementById('tree-banner-title');
+    const descEl = document.getElementById('tree-banner-desc');
+    const imgEl = document.getElementById('tree-banner-img');
+    if (titleEl) titleEl.textContent = treeData.name;
+    if (descEl) descEl.textContent = treeData.description;
+    if (imgEl) imgEl.src = treeData.coverImage || 'LawalNG1.png';
 
     // Bind Canvas Dragging, Touch gestures, keyboard events
     this.bindCanvasControls();
@@ -418,7 +463,8 @@ export class Tree {
         avatar,
         biography,
         education: { university: "Awaiting inputs" },
-        timeline: []
+        timeline: [],
+        treeIds: [Tree.selectedTreeId]
       };
 
       try {
@@ -469,7 +515,11 @@ export class Tree {
 
   static async render() {
     const rawMembers = await memberService.searchMembers({ includeDeleted: false });
-    const members = await this.enrichMembers(rawMembers);
+    const filteredMembers = rawMembers.filter(m => {
+      const tIds = m.treeIds || ["house-of-lawal"];
+      return tIds.includes(Tree.selectedTreeId);
+    });
+    const members = await this.enrichMembers(filteredMembers);
     const cardsLayer = document.getElementById('tree-cards-layer');
     if (!cardsLayer) return;
 
@@ -623,10 +673,11 @@ export class Tree {
     div.style.zIndex = '10';
     div.id = `tree-card-${member.id}`;
 
+    const themeCls = Tree.getThemeColorClass();
     // Apply specific classes if matches highlighted search/highlight relationships
     if (activeSelectedNodeId) {
       if (member.id === activeSelectedNodeId) {
-        div.className += ' ring-4 ring-gold border-gold scale-105';
+        div.className += ` ring-4 ring-${themeCls} border-${themeCls} scale-105`;
       } else if (this.isRelated(member.id, activeSelectedNodeId)) {
         div.className += ' ring-2 ring-emerald/40 border-emerald scale-[1.01]';
       } else {
@@ -652,7 +703,7 @@ export class Tree {
 
     const collapseToggleHtml = hasChildren
       ? `
-        <button class="collapse-toggle-btn absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-slate-900 border border-gold/30 hover:border-gold flex items-center justify-center text-xs text-gold transition-all z-20 shadow-lg" data-id="${member.id}" title="${isCollapsed ? 'Expand lineage' : 'Collapse lineage'}">
+        <button class="collapse-toggle-btn absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-slate-900 border border-${themeCls}/30 hover:border-${themeCls} flex items-center justify-center text-xs text-${themeCls} transition-all z-20 shadow-lg" data-id="${member.id}" title="${isCollapsed ? 'Expand lineage' : 'Collapse lineage'}">
           <i class="fa-solid ${isCollapsed ? 'fa-angle-down' : 'fa-angle-up'}"></i>
         </button>
       `
@@ -667,14 +718,14 @@ export class Tree {
       <!-- User basic metadata -->
       <div class="flex items-start gap-3 relative">
         <div class="relative shrink-0">
-          <img src="${member.avatar || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80'}" alt="${member.firstName}" class="w-12 h-12 rounded-2xl object-cover border-2 border-gold/25 group-hover:border-gold transition-all shadow-inner">
+          <img src="${member.avatar || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80'}" alt="${member.firstName}" class="w-12 h-12 rounded-2xl object-cover border-2 border-${themeCls}/25 group-hover:border-${themeCls} transition-all shadow-inner">
           <span class="absolute -top-1 -left-1 w-4.5 h-4.5 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center text-[8px]">
             ${isMale ? '<i class="fa-solid fa-mars text-blue-400"></i>' : '<i class="fa-solid fa-venus text-pink-400"></i>'}
           </span>
         </div>
         <div class="flex flex-col min-w-0 flex-grow text-left">
           <div class="flex items-center gap-1.5 min-w-0">
-            <span class="text-xs font-serif font-bold text-white truncate group-hover:text-gold transition-colors">${member.firstName} ${member.lastName}</span>
+            <span class="text-xs font-serif font-bold text-white truncate group-hover:text-${themeCls} transition-colors">${member.firstName} ${member.lastName}</span>
             <span class="text-[10px] shrink-0" title="Flag Country">${member.countryFlag || "🇳🇬"}</span>
           </div>
           <span class="text-[9px] text-slate-400 font-light truncate italic">"${member.nickname || 'None'}"</span>
@@ -689,14 +740,14 @@ export class Tree {
           <span class="font-light text-slate-400">${member.deathDate ? 'Died: ' + member.deathDate.substring(0, 4) : 'Age: ' + this.calculateAge(member.birthDate)}</span>
         </div>
         <div class="flex flex-col items-end gap-1 shrink-0">
-          <span class="text-[8px] uppercase tracking-wider bg-gold/15 text-gold px-2 py-0.5 rounded font-extrabold border border-gold/10">Gen ${member.generation}</span>
+          <span class="text-[8px] uppercase tracking-wider bg-${themeCls}/15 text-${themeCls} px-2 py-0.5 rounded font-extrabold border border-${themeCls}/10">Gen ${member.generation}</span>
           ${statusPill}
         </div>
       </div>
 
       <!-- Quick Actions bar -->
       <div class="flex gap-1.5 border-t border-white/5 pt-2.5 mt-1.5 relative z-10">
-        <button class="view-profile-btn flex-grow h-7.5 bg-white/5 hover:bg-gold hover:text-slate-950 rounded-lg text-[9px] font-extrabold tracking-wider uppercase transition-all flex items-center justify-center gap-1" data-id="${member.id}">
+        <button class="view-profile-btn flex-grow h-7.5 bg-white/5 hover:bg-${themeCls} hover:text-slate-950 rounded-lg text-[9px] font-extrabold tracking-wider uppercase transition-all flex items-center justify-center gap-1" data-id="${member.id}">
           <i class="fa-solid fa-id-card"></i> Profile
         </button>
         <button class="quick-info-btn w-7.5 h-7.5 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-lg flex items-center justify-center transition-all text-xs" data-id="${member.id}" title="Quick View">
@@ -830,7 +881,8 @@ export class Tree {
             (member.id === activeSelectedNodeId || spouseId === activeSelectedNodeId) ||
             (this.isRelated(member.id, activeSelectedNodeId) && this.isRelated(spouseId, activeSelectedNodeId))
           );
-          const color = marriageHighlight ? "#10B981" : "#D4AF37";
+          const themeHex = Tree.getThemeColorHex();
+          const color = marriageHighlight ? "#10B981" : themeHex;
           const width = marriageHighlight ? "3.5" : "2.5";
           const op = marriageHighlight ? "1.0" : "0.6";
 
@@ -1168,17 +1220,27 @@ export class Tree {
   static bindSearchControls() {
     const input = document.getElementById('tree-search-input');
     const autoBox = document.getElementById('tree-search-autocomplete');
+    const scopeSelect = document.getElementById('tree-search-scope');
     if (!input || !autoBox) return;
 
-    input.addEventListener('input', (e) => {
+    input.addEventListener('input', async (e) => {
       const val = e.target.value.toLowerCase().trim();
       if (!val) {
         autoBox.classList.add('hidden');
         return;
       }
 
-      const members = this.currentMembersList || [];
-      const matched = members.filter(m =>
+      const scope = scopeSelect ? scopeSelect.value : 'current';
+      let searchPool = [];
+      const allTrees = await treeRepository.findAll();
+
+      if (scope === 'all') {
+        searchPool = await memberService.searchMembers({ includeDeleted: false });
+      } else {
+        searchPool = this.currentMembersList || [];
+      }
+
+      const matched = searchPool.filter(m =>
         m.firstName.toLowerCase().includes(val) ||
         m.lastName.toLowerCase().includes(val) ||
         (m.nickname && m.nickname.toLowerCase().includes(val))
@@ -1190,12 +1252,24 @@ export class Tree {
         return;
       }
 
-      autoBox.innerHTML = matched.map(m => `
-        <button class="w-full text-left p-2 hover:bg-white/5 rounded text-white flex items-center justify-between text-xs" data-id="${m.id}">
-          <span>${m.firstName} ${m.lastName}</span>
-          <span class="text-[9px] uppercase tracking-wider bg-gold/10 text-gold px-1.5 py-0.5 rounded">Gen ${m.generation}</span>
-        </button>
-      `).join('');
+      autoBox.innerHTML = matched.map(m => {
+        const tIds = m.treeIds || ["house-of-lawal"];
+        const treeNames = tIds.map(tid => {
+          const match = allTrees.find(t => t.treeId === tid);
+          return match ? match.name : tid;
+        }).join(', ');
+
+        const themeCls = Tree.getThemeColorClass();
+        return `
+          <button class="w-full text-left p-2 hover:bg-white/5 rounded text-white flex flex-col gap-0.5 text-xs" data-id="${m.id}" data-tree-id="${tIds[0]}">
+            <div class="flex items-center justify-between w-full">
+              <span class="font-bold">${m.firstName} ${m.lastName}</span>
+              <span class="text-[8px] uppercase tracking-wider bg-${themeCls}/10 text-${themeCls} px-1.5 py-0.5 rounded">Gen ${m.generation}</span>
+            </div>
+            <span class="text-[9px] text-slate-400 font-light truncate">Trees: ${treeNames}</span>
+          </button>
+        `;
+      }).join('');
 
       autoBox.classList.remove('hidden');
 
@@ -1203,9 +1277,15 @@ export class Tree {
       autoBox.querySelectorAll('button').forEach(btn => {
         btn.addEventListener('click', (ev) => {
           const mId = ev.currentTarget.getAttribute('data-id');
-          this.centerOnMember(mId);
+          const targetTreeId = ev.currentTarget.getAttribute('data-tree-id');
           autoBox.classList.add('hidden');
           input.value = '';
+
+          if (scope === 'all' && targetTreeId !== Tree.selectedTreeId) {
+            window.location.href = `tree.html?treeId=${targetTreeId}&id=${mId}`;
+          } else {
+            this.centerOnMember(mId);
+          }
         });
       });
     });
@@ -1342,6 +1422,12 @@ export class Tree {
       }
     }
 
+    const allTrees = await treeRepository.findAll();
+    const treeNamesList = (member.treeIds || ["house-of-lawal"]).map(tid => {
+      const match = allTrees.find(t => t.treeId === tid);
+      return match ? match.name : tid;
+    }).join(', ');
+
     drawer.innerHTML = `
       <div class="flex flex-col gap-6 text-left pb-12">
         <!-- Close button & title -->
@@ -1366,6 +1452,12 @@ export class Tree {
         <div class="p-3.5 bg-gold/10 border border-gold/20 rounded-xl flex flex-col gap-1">
           <span class="text-[9px] uppercase tracking-wider text-gold font-bold"><i class="fa-solid fa-network-wired"></i> Connection to You</span>
           <span class="text-xs text-white font-medium">${summaryText}</span>
+        </div>
+
+        <!-- Tree memberships row -->
+        <div class="p-3.5 bg-emerald/10 border border-emerald/20 rounded-xl flex flex-col gap-1">
+          <span class="text-[9px] uppercase tracking-wider text-emerald font-bold"><i class="fa-solid fa-tree"></i> Tree Memberships</span>
+          <span class="text-xs text-white font-medium">${treeNamesList}</span>
         </div>
 
         <!-- Demographics Grid -->
@@ -1573,8 +1665,19 @@ export class Tree {
       };
     });
 
+    const allTrees = await treeRepository.findAll();
+    const treeCheckboxesHtml = allTrees.map(t => {
+      const checked = (member.treeIds || ["house-of-lawal"]).includes(t.treeId) ? 'checked' : '';
+      return `
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" name="edit-treeIds" value="${t.treeId}" ${checked} class="rounded border-white/10 bg-slate-950 text-gold focus:ring-0 w-4 h-4"/>
+          <span>${t.name}</span>
+        </label>
+      `;
+    }).join('');
+
     modal.innerHTML = `
-      <div class="w-full max-w-2xl bg-slate-900 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-fade-in" id="edit-modal-card">
+      <div class="w-full max-w-2xl bg-slate-900 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" id="edit-modal-card">
 
         <!-- Header -->
         <div class="p-6 border-b border-white/5 flex justify-between items-center bg-slate-950/40">
@@ -1641,6 +1744,16 @@ export class Tree {
           <div class="flex flex-col gap-1.5">
             <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Full Chronicle Biography</label>
             <textarea id="edit-biography" rows="4" class="p-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold resize-none">${member.biography || ''}</textarea>
+          </div>
+
+          <!-- Tree Memberships checklist -->
+          <div class="border-t border-white/5 pt-4">
+            <h4 class="text-white font-serif font-semibold text-xs tracking-wide mb-3 flex items-center gap-1.5">
+              <i class="fa-solid fa-tree text-gold"></i> Tree Memberships
+            </h4>
+            <div class="flex flex-wrap gap-4 text-white">
+              ${treeCheckboxesHtml}
+            </div>
           </div>
 
           <!-- Active Relationships list to allow Removal of Relationships -->
@@ -1764,6 +1877,7 @@ export class Tree {
       const originalText = submitBtn.innerHTML;
       submitBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Saving...`;
 
+      const selectedTreeIds = Array.from(modal.querySelectorAll('input[name="edit-treeIds"]:checked')).map(cb => cb.value);
       const updateData = {
         firstName: modal.querySelector('#edit-firstName').value.trim(),
         lastName: modal.querySelector('#edit-lastName').value.trim(),
@@ -1775,7 +1889,8 @@ export class Tree {
         deathDate: modal.querySelector('#edit-deathDate').value || null,
         avatar: modal.querySelector('#edit-avatar').value.trim(),
         biography: modal.querySelector('#edit-biography').value.trim(),
-        living: modal.querySelector('#edit-status').value === 'Living'
+        living: modal.querySelector('#edit-status').value === 'Living',
+        treeIds: selectedTreeIds
       };
 
       try {

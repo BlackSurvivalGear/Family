@@ -52,6 +52,7 @@ export class Navigation {
 
     const menuItems = [
       { file: 'dashboard.html', icon: 'fa-chart-line', label: 'Dashboard' },
+      { file: 'trees.html', icon: 'fa-tree', label: 'Family Trees' },
       { file: 'tree.html', icon: 'fa-diagram-project', label: 'Family Tree' },
       { file: 'members.html', icon: 'fa-users', label: 'Family Members' },
       { file: 'history.html', icon: 'fa-landmark', label: 'Family History' },
