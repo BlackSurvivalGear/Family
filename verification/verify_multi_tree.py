@@ -85,10 +85,10 @@ def run_multi_tree_tests(page):
     grimster_card.locator("a:has-text('Open Tree')").click()
     page.wait_for_timeout(2000)
 
-    # We should be on tree.html with treeId query param
+    # We should be on tree-grimster.html with treeId query param
     current_url = page.url
     print(f"Current URL: {current_url}")
-    assert "treeId=grimster" in current_url, "Navigating to Grimster tree should include treeId=grimster in query."
+    assert "treeId=grimster" in current_url or "tree-grimster.html" in current_url, "Navigating to Grimster tree should include treeId=grimster in query or the dedicated filename."
 
     # Check banner header elements
     banner_title = page.locator("#tree-banner-title").inner_text()
@@ -141,7 +141,7 @@ def run_multi_tree_tests(page):
 
     # We should have switched to house-of-lawal tree
     print(f"URL after search click: {page.url}")
-    assert "treeId=house-of-lawal" in page.url or "treeId=" not in page.url, "Should auto-switch to House of Lawal tree."
+    assert "tree-lawal.html" in page.url or "treeId=house-of-lawal" in page.url or "treeId=" not in page.url, "Should auto-switch to House of Lawal tree page."
     print("Cross-tree search and automatic switching verified successfully!")
 
     # 6. TEST PERMISSIONS: Demote role to GUEST and verify edit options are hidden/denied

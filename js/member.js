@@ -48,15 +48,27 @@ export class MemberProfile {
     const viewTreeBtn = document.getElementById('tree-focus-action-btn');
     if (viewTreeBtn) {
       viewTreeBtn.addEventListener('click', () => {
-        window.location.href = `tree.html?id=${member.id}`;
+        const primaryTreeId = (member.treeIds && member.treeIds.length > 0) ? member.treeIds[0] : 'house-of-lawal';
+        let targetPage = 'tree-lawal.html';
+        if (primaryTreeId === 'grimster') targetPage = 'tree-grimster.html';
+        else if (primaryTreeId === 'oluwanje') targetPage = 'tree-oluwanje.html';
+        else if (primaryTreeId === 'ogunronbi') targetPage = 'tree-ogunronbi.html';
+
+        window.location.href = `${targetPage}?treeId=${primaryTreeId}&id=${member.id}`;
       });
     }
 
     const editBtn = document.getElementById('edit-profile-action-btn');
     if (editBtn) {
       editBtn.addEventListener('click', () => {
+        const primaryTreeId = (member.treeIds && member.treeIds.length > 0) ? member.treeIds[0] : 'house-of-lawal';
+        let targetPage = 'tree-lawal.html';
+        if (primaryTreeId === 'grimster') targetPage = 'tree-grimster.html';
+        else if (primaryTreeId === 'oluwanje') targetPage = 'tree-oluwanje.html';
+        else if (primaryTreeId === 'ogunronbi') targetPage = 'tree-ogunronbi.html';
+
         // Redirect to tree and open editing modal
-        window.location.href = `tree.html?id=${member.id}&edit=true`;
+        window.location.href = `${targetPage}?treeId=${primaryTreeId}&id=${member.id}&edit=true`;
       });
     }
 

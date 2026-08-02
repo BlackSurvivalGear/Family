@@ -60,9 +60,16 @@ export class Tree {
   static async init() {
     DB.init();
 
+    // Map filename to predefined tree IDs if treeId param is not specified
+    const filename = window.location.pathname.substring(window.location.pathname.lastIndexOf('/') + 1);
+    let defaultTreeId = 'house-of-lawal';
+    if (filename === 'tree-grimster.html') defaultTreeId = 'grimster';
+    else if (filename === 'tree-oluwanje.html') defaultTreeId = 'oluwanje';
+    else if (filename === 'tree-ogunronbi.html') defaultTreeId = 'ogunronbi';
+
     // Check query params for initial action
     const urlParams = new URLSearchParams(window.location.search);
-    const treeId = urlParams.get('treeId') || 'house-of-lawal';
+    const treeId = urlParams.get('treeId') || defaultTreeId;
     const focusId = urlParams.get('id');
     const triggerEdit = urlParams.get('edit') === 'true';
 
@@ -1282,7 +1289,12 @@ export class Tree {
           input.value = '';
 
           if (scope === 'all' && targetTreeId !== Tree.selectedTreeId) {
-            window.location.href = `tree.html?treeId=${targetTreeId}&id=${mId}`;
+            let targetPage = 'tree-lawal.html';
+            if (targetTreeId === 'grimster') targetPage = 'tree-grimster.html';
+            else if (targetTreeId === 'oluwanje') targetPage = 'tree-oluwanje.html';
+            else if (targetTreeId === 'ogunronbi') targetPage = 'tree-ogunronbi.html';
+
+            window.location.href = `${targetPage}?treeId=${targetTreeId}&id=${mId}`;
           } else {
             this.centerOnMember(mId);
           }
@@ -1635,6 +1647,10 @@ export class Tree {
 
     // Expose Tree on window so global click handlers can invoke centerOnMember
     window.Tree = Tree;
+  }
+
+  static getSelectedTreeId() {
+    return this.selectedTreeId;
   }
 
   // Open the detailed Add/Edit relation modification Modal
