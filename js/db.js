@@ -931,8 +931,133 @@ export class DB {
 
     // Override local storage cache to force update seeds if schema changes
     const forceReset = false;
-    if (forceReset || !checkKey("lawal_members") || this.getStorageItem("lawal_members", []).length < 13) {
-      this.setStorageItem("lawal_members", SEED_MEMBERS);
+
+    // Seed Trees
+    if (!checkKey("lawal_trees") || this.getStorageItem("lawal_trees", []).length < 4) {
+      const defaultTrees = [
+        {
+          id: "house-of-lawal",
+          treeId: "house-of-lawal",
+          name: "House of Lawal",
+          description: "The main Lawal ancestral tree, tracing the noble lineage of Alhaji Kolawole Lawal.",
+          coverImage: "LawalNG1.png",
+          themeColor: "gold"
+        },
+        {
+          id: "grimster",
+          treeId: "grimster",
+          name: "Grimster",
+          description: "The Grimster family lineage from Bristol and London, UK.",
+          coverImage: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=800&q=80",
+          themeColor: "emerald"
+        },
+        {
+          id: "oluwanje",
+          treeId: "oluwanje",
+          name: "Oluwanje",
+          description: "The Oluwanje family ancestral lineage from Abeokuta and Lagos, Nigeria.",
+          coverImage: "https://images.unsplash.com/photo-1464695115841-35f1954577df?auto=format&fit=crop&w=800&q=80",
+          themeColor: "blue"
+        },
+        {
+          id: "ogunronbi",
+          treeId: "ogunronbi",
+          name: "Ogunronbi",
+          description: "The Ogunronbi family ancestral lineage, holding rich cultural heritage.",
+          coverImage: "https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=800&q=80",
+          themeColor: "purple"
+        }
+      ];
+      this.setStorageItem("lawal_trees", defaultTrees);
+    }
+
+    // Additional cross-tree members to support Multi-Tree Genealogy and marriage links
+    const crossTreeMembers = [
+      {
+        id: "mary-grimster",
+        firstName: "Mary",
+        lastName: "Grimster",
+        nickname: "Mae",
+        gender: "Female",
+        birthDate: "1975-04-12",
+        birthPlace: "London, UK",
+        status: "Living",
+        nationality: "British",
+        countryFlag: "🇬🇧",
+        biography: "Mary Grimster is a shared maternal figure linking the Grimster, Oluwanje, and Ogunronbi families through marriage.",
+        fatherId: "harold-grimster",
+        motherId: null,
+        spouseId: "david-ogunronbi",
+        generation: 2,
+        role: "Shared Matriarch",
+        treeIds: ["grimster", "oluwanje", "ogunronbi"]
+      },
+      {
+        id: "harold-grimster",
+        firstName: "Harold",
+        lastName: "Grimster",
+        nickname: "Harry",
+        gender: "Male",
+        birthDate: "1945-08-20",
+        birthPlace: "Bristol, UK",
+        status: "Deceased",
+        nationality: "British",
+        countryFlag: "🇬🇧",
+        biography: "Harold Grimster was the patriarch of the Grimster family branch.",
+        fatherId: null,
+        motherId: null,
+        spouseId: null,
+        generation: 1,
+        role: "Grimster Patriarch",
+        treeIds: ["grimster"]
+      },
+      {
+        id: "samuel-oluwanje",
+        firstName: "Samuel",
+        lastName: "Oluwanje",
+        nickname: "Sam",
+        gender: "Male",
+        birthDate: "1972-10-05",
+        birthPlace: "Lagos, Nigeria",
+        status: "Living",
+        nationality: "Nigerian",
+        countryFlag: "🇳🇬",
+        biography: "Samuel Oluwanje is the esteemed leader of the Oluwanje branch.",
+        fatherId: null,
+        motherId: null,
+        spouseId: "mary-grimster",
+        generation: 2,
+        role: "Oluwanje Patriarch",
+        treeIds: ["oluwanje"]
+      },
+      {
+        id: "david-ogunronbi",
+        firstName: "David",
+        lastName: "Ogunronbi",
+        nickname: "Dave",
+        gender: "Male",
+        birthDate: "1970-12-15",
+        birthPlace: "Abeokuta, Nigeria",
+        status: "Living",
+        nationality: "Nigerian",
+        countryFlag: "🇳🇬",
+        biography: "David Ogunronbi is the leader of the Ogunronbi branch.",
+        fatherId: null,
+        motherId: null,
+        spouseId: "mary-grimster",
+        generation: 2,
+        role: "Ogunronbi Patriarch",
+        treeIds: ["ogunronbi"]
+      }
+    ];
+
+    const allMembersSeed = [
+      ...SEED_MEMBERS.map(m => ({ ...m, treeIds: m.treeIds || ["house-of-lawal"] })),
+      ...crossTreeMembers
+    ];
+
+    if (forceReset || !checkKey("lawal_members") || this.getStorageItem("lawal_members", []).length < 17) {
+      this.setStorageItem("lawal_members", allMembersSeed);
     }
     if (!checkKey("lawal_news")) {
       this.setStorageItem("lawal_news", SEED_NEWS);
@@ -948,8 +1073,8 @@ export class DB {
     }
 
     // Seed modern familyRepository and relationshipRepository schema for offline support
-    if (forceReset || !checkKey("lawal_family_members") || this.getStorageItem("lawal_family_members", []).length < 13) {
-      const familyMembers = SEED_MEMBERS.map(m => ({
+    if (forceReset || !checkKey("lawal_family_members") || this.getStorageItem("lawal_family_members", []).length < 17) {
+      const familyMembers = allMembersSeed.map(m => ({
         ...m,
         memberId: m.id,
         living: m.status === "Living"
@@ -957,10 +1082,11 @@ export class DB {
       this.setStorageItem("lawal_family_members", familyMembers);
     }
 
-    if (forceReset || !checkKey("lawal_relationships") || this.getStorageItem("lawal_relationships", []).length === 0) {
+    if (forceReset || !checkKey("lawal_relationships") || this.getStorageItem("lawal_relationships", []).length < 15) {
       const relationships = [];
       const addedSpouses = new Set();
 
+      // Core SEED_MEMBERS relationships
       SEED_MEMBERS.forEach(m => {
         if (m.fatherId) {
           const type = m.relationshipType === "Adopted" ? "ADOPTIVE_PARENT" : "BIOLOGICAL_FATHER";
@@ -1008,6 +1134,44 @@ export class DB {
           });
         }
       });
+
+      // Add our custom cross-tree relationships:
+      // Harold to Mary (BIOLOGICAL_FATHER)
+      relationships.push({
+        relationshipId: "rel-f-mary-harold",
+        personA: "harold-grimster",
+        personB: "mary-grimster",
+        relationshipType: "BIOLOGICAL_FATHER",
+        status: "Current",
+        createdBy: "system",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+
+      // Mary to David (SPOUSE, Current)
+      relationships.push({
+        relationshipId: "rel-s-mary-david",
+        personA: "mary-grimster",
+        personB: "david-ogunronbi",
+        relationshipType: "SPOUSE",
+        status: "Current",
+        createdBy: "system",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+
+      // Mary to Samuel (FORMER_SPOUSE, Past)
+      relationships.push({
+        relationshipId: "rel-s-mary-samuel",
+        personA: "mary-grimster",
+        personB: "samuel-oluwanje",
+        relationshipType: "FORMER_SPOUSE",
+        status: "Past",
+        createdBy: "system",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+
       this.setStorageItem("lawal_relationships", relationships);
     }
   }
