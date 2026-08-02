@@ -18,6 +18,33 @@ import {
 } from './genealogy/relationshipEngine.js';
 import { subscribe } from './services/eventBus.js';
 
+const defaultTreesData = {
+  "house-of-lawal": {
+    name: "House of Lawal",
+    description: "The main Lawal ancestral tree, tracing the noble lineage of Alhaji Kolawole Lawal.",
+    coverImage: "LawalNG1.png",
+    themeColor: "gold"
+  },
+  "grimster": {
+    name: "Grimster",
+    description: "The Grimster family lineage from Bristol and London, UK.",
+    coverImage: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=800&q=80",
+    themeColor: "emerald"
+  },
+  "oluwanje": {
+    name: "Oluwanje",
+    description: "The Oluwanje family ancestral lineage from Abeokuta and Lagos, Nigeria.",
+    coverImage: "https://images.unsplash.com/photo-1464695115841-35f1954577df?auto=format&fit=crop&w=800&q=80",
+    themeColor: "blue"
+  },
+  "ogunronbi": {
+    name: "Ogunronbi",
+    description: "The Ogunronbi family ancestral lineage, holding rich cultural heritage.",
+    coverImage: "https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=800&q=80",
+    themeColor: "purple"
+  }
+};
+
 // Global variables for canvas states
 let transformX = -1300;
 let transformY = -50;
@@ -74,12 +101,14 @@ export class Tree {
     const triggerEdit = urlParams.get('edit') === 'true';
 
     // Fetch tree repository
-    const treeData = await treeRepository.findById(treeId) || {
-      name: "House of Lawal",
-      description: "The main Lawal ancestral tree, tracing the noble lineage of Alhaji Kolawole Lawal.",
+    const fallbackTree = defaultTreesData[treeId] || {
+      name: treeId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+      description: `The ${treeId} family ancestral lineage tree.`,
       coverImage: "LawalNG1.png",
       themeColor: "gold"
     };
+
+    const treeData = await treeRepository.findById(treeId) || fallbackTree;
 
     this.selectedTreeId = treeId;
     this.treeData = treeData;
@@ -100,6 +129,18 @@ export class Tree {
     if (titleEl) titleEl.textContent = actualName;
     if (descEl) descEl.textContent = treeData.description;
     if (imgEl) imgEl.src = treeData.coverImage || 'LawalNG1.png';
+
+    // Update banner tag and legend icon theme text colors on load
+    const tagEl = document.getElementById('tree-banner-tag');
+    const legendIcon = document.querySelector('#legend-btn i');
+    const themeTextCls = this.getThemeTextClass();
+
+    if (tagEl) {
+      tagEl.className = tagEl.className.replace(/\btext-(gold|emerald|blue-400|purple-400)\b/g, '') + ` ${themeTextCls}`;
+    }
+    if (legendIcon) {
+      legendIcon.className = legendIcon.className.replace(/\btext-(gold|emerald|blue-400|purple-400)\b/g, '') + ` ${themeTextCls}`;
+    }
 
     // Bind Canvas Dragging, Touch gestures, keyboard events
     this.bindCanvasControls();
@@ -142,6 +183,26 @@ export class Tree {
     window.addEventListener('resize', () => {
       this.updateSVGConnectors();
       this.updateMinimap();
+    });
+
+    // Bind popstate to support browser back/forward buttons
+    window.addEventListener('popstate', async (e) => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const filename = window.location.pathname.substring(window.location.pathname.lastIndexOf('/') + 1);
+      let defaultTreeId = 'house-of-lawal';
+      if (filename === 'tree-grimster.html') defaultTreeId = 'grimster';
+      else if (filename === 'tree-oluwanje.html') defaultTreeId = 'oluwanje';
+      else if (filename === 'tree-ogunronbi.html') defaultTreeId = 'ogunronbi';
+
+      const newTreeId = urlParams.get('treeId') || defaultTreeId;
+      const mId = urlParams.get('id');
+
+      if (newTreeId !== this.selectedTreeId) {
+        await this.switchTree(newTreeId);
+      }
+      if (mId) {
+        this.centerOnMember(mId);
+      }
     });
   }
 
@@ -572,6 +633,17 @@ export class Tree {
 
     // 5. Update Breadcrumbs to current highlighted root
     this.updateBreadcrumbs();
+
+    // 6. Update recenter roots button tooltip/title based on the active root member
+    const recenterRoots = document.getElementById('recenter-patriarch-btn');
+    if (recenterRoots) {
+      const rootMember = this.getRootMember();
+      if (rootMember) {
+        recenterRoots.title = `Center on ${rootMember.firstName} ${rootMember.lastName}`;
+      } else {
+        recenterRoots.title = `Center Roots`;
+      }
+    }
   }
 
   // layout math mapping generation & sequential horizontal placements
@@ -1143,6 +1215,22 @@ export class Tree {
 
     if (recenterRoots) {
       recenterRoots.addEventListener('click', () => {
+        const rootMember = this.getRootMember();
+        if (rootMember && this.coordinates && this.coordinates[rootMember.id]) {
+          const coord = this.coordinates[rootMember.id];
+          const viewport = document.getElementById('viewport-container');
+          if (viewport) {
+            const cardWidth = 260;
+            const cardHeight = 160;
+            const viewW = viewport.clientWidth;
+            const viewH = viewport.clientHeight;
+            scale = 0.75;
+            transformX = -coord.x + (viewW / 2) - (cardWidth / 2);
+            transformY = -coord.y + (viewH / 2) - (cardHeight / 2);
+            applyTransform();
+            return;
+          }
+        }
         // Center camera around roots
         scale = 0.75;
         transformX = -1300;
@@ -1293,21 +1381,20 @@ export class Tree {
 
       // Add click behavior on autocompletes
       autoBox.querySelectorAll('button').forEach(btn => {
-        btn.addEventListener('click', (ev) => {
+        btn.addEventListener('click', async (ev) => {
           const mId = ev.currentTarget.getAttribute('data-id');
           const targetTreeId = ev.currentTarget.getAttribute('data-tree-id');
           autoBox.classList.add('hidden');
           input.value = '';
 
           if (scope === 'all' && targetTreeId !== Tree.selectedTreeId) {
-            let targetPage = 'tree-lawal.html';
-            if (targetTreeId === 'grimster') targetPage = 'tree-grimster.html';
-            else if (targetTreeId === 'oluwanje') targetPage = 'tree-oluwanje.html';
-            else if (targetTreeId === 'ogunronbi') targetPage = 'tree-ogunronbi.html';
-
-            window.location.href = `${targetPage}?treeId=${targetTreeId}&id=${mId}`;
+            // Update URL query parameters and history state without reloading
+            const newUrl = `?treeId=${targetTreeId}&id=${mId}`;
+            window.history.pushState({ treeId: targetTreeId, id: mId }, '', newUrl);
+            await Tree.switchTree(targetTreeId);
+            Tree.centerOnMember(mId);
           } else {
-            this.centerOnMember(mId);
+            Tree.centerOnMember(mId);
           }
         });
       });
@@ -1378,21 +1465,85 @@ export class Tree {
     }
   }
 
+  static getRootMember() {
+    const members = this.currentMembersList || [];
+    if (members.length === 0) return null;
+
+    const roots = members.filter(m => !m.fatherId && !m.motherId);
+    if (roots.length === 0) return members[0];
+
+    roots.sort((a, b) => (a.generation || 1) - (b.generation || 1));
+
+    const maleRoot = roots.find(m => m.gender === 'Male');
+    return maleRoot || roots[0];
+  }
+
+  static async switchTree(treeId) {
+    if (this.selectedTreeId === treeId) return;
+
+    // Fetch tree repository
+    const fallbackTree = defaultTreesData[treeId] || {
+      name: treeId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+      description: `The ${treeId} family ancestral lineage tree.`,
+      coverImage: "LawalNG1.png",
+      themeColor: "gold"
+    };
+
+    const treeData = await treeRepository.findById(treeId) || fallbackTree;
+
+    this.selectedTreeId = treeId;
+    this.treeData = treeData;
+
+    // Calculate actual dynamic name ending with "Family Tree" if not already present
+    let actualName = treeData.name;
+    if (!actualName.endsWith('Family Tree') && !actualName.endsWith('Tree')) {
+      actualName = `${actualName} Family Tree`;
+    }
+
+    // Set page tab title dynamically
+    document.title = `${actualName} | Lawal.org Portal`;
+
+    // Dynamically update banner elements
+    const titleEl = document.getElementById('tree-banner-title');
+    const descEl = document.getElementById('tree-banner-desc');
+    const imgEl = document.getElementById('tree-banner-img');
+    if (titleEl) titleEl.textContent = actualName;
+    if (descEl) descEl.textContent = treeData.description;
+    if (imgEl) imgEl.src = treeData.coverImage || 'LawalNG1.png';
+
+    // Update banner tag and legend icon theme text colors
+    const tagEl = document.getElementById('tree-banner-tag');
+    const legendIcon = document.querySelector('#legend-btn i');
+    const themeTextCls = this.getThemeTextClass();
+
+    if (tagEl) {
+      tagEl.className = tagEl.className.replace(/\btext-(gold|emerald|blue-400|purple-400)\b/g, '') + ` ${themeTextCls}`;
+    }
+    if (legendIcon) {
+      legendIcon.className = legendIcon.className.replace(/\btext-(gold|emerald|blue-400|purple-400)\b/g, '') + ` ${themeTextCls}`;
+    }
+
+    // Render the new tree
+    await this.render();
+  }
+
   // Dynamically compute breadcrumbs list
   static updateBreadcrumbs() {
     const container = document.getElementById('tree-breadcrumbs');
     if (!container) return;
 
-    // Default breadcrumb representing founder
+    const rootMember = this.getRootMember();
+    const rootName = rootMember ? `Patriarch ${rootMember.firstName}` : "Patriarch Kolawole";
+
     container.innerHTML = `
-      <span class="hover:text-gold cursor-pointer transition-colors" id="bc-root">Patriarch Kolawole</span>
+      <span class="hover:text-gold cursor-pointer transition-colors" id="bc-root">${rootName}</span>
       <i class="fa-solid fa-angle-right text-[10px] text-slate-600"></i>
       <span class="text-gold font-medium">Interactive Canvas</span>
     `;
 
     const rootBtn = document.getElementById('bc-root');
-    if (rootBtn) {
-      rootBtn.addEventListener('click', () => this.centerOnMember('kolawole-lawal'));
+    if (rootBtn && rootMember) {
+      rootBtn.addEventListener('click', () => this.centerOnMember(rootMember.id));
     }
   }
 
