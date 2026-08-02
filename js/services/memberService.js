@@ -33,6 +33,11 @@ function enforcePermission(allowedRoles, targetMember = null) {
     return user;
   }
 
+  // ADMIN has administrative control
+  if (hasRole(user, ROLES.ADMIN)) {
+    return user;
+  }
+
   // FAMILY_ADMIN can manage the entire family
   if (hasRole(user, ROLES.FAMILY_ADMIN)) {
     return user;
@@ -75,7 +80,7 @@ function enforcePermission(allowedRoles, targetMember = null) {
  * @returns {Promise<string>} Created member ID.
  */
 export async function createMember(data) {
-  const user = enforcePermission([ROLES.SUPER_ADMIN, ROLES.FAMILY_ADMIN, ROLES.BRANCH_ADMIN, ROLES.EDITOR]);
+  const user = enforcePermission([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.FAMILY_ADMIN, ROLES.BRANCH_ADMIN, ROLES.EDITOR, ROLES.CONTRIBUTOR]);
 
   // If BRANCH_ADMIN, enforce adding only to their own branch
   if (hasRole(user, ROLES.BRANCH_ADMIN)) {
@@ -129,7 +134,7 @@ export async function updateMember(id, data) {
   }
 
   // Enforce permissions for update
-  enforcePermission([ROLES.SUPER_ADMIN, ROLES.FAMILY_ADMIN, ROLES.BRANCH_ADMIN, ROLES.EDITOR, ROLES.MEMBER], current);
+  enforcePermission([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.FAMILY_ADMIN, ROLES.BRANCH_ADMIN, ROLES.EDITOR, ROLES.MEMBER], current);
 
   // If validation fails
   const merged = { ...current, ...data };
@@ -164,7 +169,7 @@ export async function softDeleteMember(id) {
     throw new ValidationError(`Active member with ID [${id}] not found.`);
   }
 
-  const user = enforcePermission([ROLES.SUPER_ADMIN, ROLES.FAMILY_ADMIN]);
+  const user = enforcePermission([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.FAMILY_ADMIN]);
 
   try {
     const deletedAt = new Date().toISOString();
@@ -199,7 +204,7 @@ export async function restoreMember(id) {
     return true; // Already active
   }
 
-  enforcePermission([ROLES.SUPER_ADMIN, ROLES.FAMILY_ADMIN]);
+  enforcePermission([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.FAMILY_ADMIN]);
 
   try {
     const success = await familyRepository.update(id, {
@@ -228,7 +233,7 @@ export async function archiveMember(id) {
     throw new ValidationError(`Member with ID [${id}] not found.`);
   }
 
-  const user = enforcePermission([ROLES.SUPER_ADMIN, ROLES.FAMILY_ADMIN, ROLES.BRANCH_ADMIN, ROLES.EDITOR], current);
+  const user = enforcePermission([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.FAMILY_ADMIN, ROLES.BRANCH_ADMIN, ROLES.EDITOR], current);
 
   try {
     const archivedAt = new Date().toISOString();
