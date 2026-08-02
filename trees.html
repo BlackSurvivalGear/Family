@@ -52,11 +52,7 @@
           <p class="text-xs text-slate-300 font-light">Explore, connect, and manage multiple interconnected family lineages.</p>
         </div>
 
-        <div class="relative z-10 flex gap-3">
-          <button id="create-tree-trigger-btn" class="hidden px-4 h-9 bg-emerald hover:bg-emerald-hover text-slate-950 font-bold tracking-wider text-xs rounded-xl flex items-center gap-1.5 transition-all shadow-md">
-            <i class="fa-solid fa-plus text-[10px]"></i> Create New Tree
-          </button>
-        </div>
+        <div class="relative z-10 flex gap-3"></div>
       </div>
 
       <!-- Family Trees Cards Grid -->
@@ -69,108 +65,6 @@
       </section>
 
     </main>
-  </div>
-
-  <!-- CREATE TREE MODAL -->
-  <div id="create-tree-modal" class="fixed inset-0 z-[100] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 transition-opacity opacity-0 pointer-events-none">
-    <div class="w-full max-w-md bg-slate-900 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-fade-in">
-      <div class="p-6 border-b border-white/5 flex justify-between items-center bg-slate-950/40">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-emerald/10 text-emerald flex items-center justify-center text-lg">
-            <i class="fa-solid fa-folder-plus"></i>
-          </div>
-          <div>
-            <h3 class="text-base font-serif font-bold text-white">Create New Tree</h3>
-            <p class="text-[10px] text-slate-500">Add a new distinct lineage with customized visual style.</p>
-          </div>
-        </div>
-        <button id="close-create-modal-btn" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <form id="create-tree-form" class="p-6 flex flex-col gap-4 text-xs text-left">
-        <div class="flex flex-col gap-1.5">
-          <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Tree Name</label>
-          <input type="text" id="tree-name" required placeholder="e.g. Grimster" class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold text-white"/>
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Description</label>
-          <textarea id="tree-description" rows="3" required placeholder="Description of this ancestral branch..." class="p-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold text-white resize-none"></textarea>
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Cover Image URL</label>
-          <input type="url" id="tree-cover" required placeholder="https://..." class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold text-white"/>
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Theme Accent Color</label>
-          <select id="tree-theme" required class="h-10 px-2 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold text-white">
-            <option value="gold">Gold (Default)</option>
-            <option value="emerald">Emerald</option>
-            <option value="blue">Blue</option>
-            <option value="purple">Purple</option>
-          </select>
-        </div>
-
-        <div class="border-t border-white/5 pt-4 flex justify-end gap-2">
-          <button type="button" id="create-cancel-btn" class="h-10 px-4 bg-white/5 hover:bg-white/10 text-white rounded-lg font-semibold tracking-wider uppercase text-[10px] transition-colors">Cancel</button>
-          <button type="submit" class="h-10 px-6 bg-emerald text-slate-950 hover:bg-emerald-hover rounded-lg font-bold tracking-wider uppercase text-[10px] transition-colors">Create Tree</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- EDIT TREE MODAL -->
-  <div id="edit-tree-modal" class="fixed inset-0 z-[100] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 transition-opacity opacity-0 pointer-events-none">
-    <div class="w-full max-w-md bg-slate-900 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-fade-in">
-      <div class="p-6 border-b border-white/5 flex justify-between items-center bg-slate-950/40">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-gold/10 text-gold flex items-center justify-center text-lg">
-            <i class="fa-solid fa-pen-to-square"></i>
-          </div>
-          <div>
-            <h3 class="text-base font-serif font-bold text-white">Edit Family Tree</h3>
-            <p class="text-[10px] text-slate-500">Modify title, description, cover image, and theme accent colors.</p>
-          </div>
-        </div>
-        <button id="close-edit-modal-btn" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <form id="edit-tree-form" class="p-6 flex flex-col gap-4 text-xs text-left">
-        <input type="hidden" id="edit-tree-id" />
-        <div class="flex flex-col gap-1.5">
-          <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Tree Name</label>
-          <input type="text" id="edit-tree-name" required placeholder="e.g. Grimster" class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold text-white"/>
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Description</label>
-          <textarea id="edit-tree-description" rows="3" required placeholder="Description of this ancestral branch..." class="p-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold text-white resize-none"></textarea>
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Cover Image URL</label>
-          <input type="url" id="edit-tree-cover" required placeholder="https://..." class="h-10 px-3 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold text-white"/>
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <label class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Theme Accent Color</label>
-          <select id="edit-tree-theme" required class="h-10 px-2 rounded-lg bg-slate-950 border border-white/10 text-xs focus:outline-none focus:border-gold text-white">
-            <option value="gold">Gold (Default)</option>
-            <option value="emerald">Emerald</option>
-            <option value="blue">Blue</option>
-            <option value="purple">Purple</option>
-          </select>
-        </div>
-
-        <div class="border-t border-white/5 pt-4 flex justify-between gap-2">
-          <button type="button" id="delete-tree-btn" class="h-10 px-4 bg-red-600/10 hover:bg-red-600 border border-red-500/20 text-red-400 hover:text-white rounded-lg font-semibold tracking-wider uppercase text-[10px] transition-colors">Delete Tree</button>
-          <div class="flex gap-2">
-            <button type="button" id="edit-cancel-btn" class="h-10 px-4 bg-white/5 hover:bg-white/10 text-white rounded-lg font-semibold tracking-wider uppercase text-[10px] transition-colors">Cancel</button>
-            <button type="submit" class="h-10 px-6 bg-gold text-slate-950 hover:bg-gold-hover rounded-lg font-bold tracking-wider uppercase text-[10px] transition-colors">Save Changes</button>
-          </div>
-        </div>
-      </form>
-    </div>
   </div>
 
   <!-- Reusable navigation launcher modules -->

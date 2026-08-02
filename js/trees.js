@@ -9,132 +9,8 @@ export class TreesPage {
   static async init() {
     DB.init();
 
-    // Check user permissions to render admin actions
-    const user = getCurrentUser();
-    const isEditor = canEdit(user);
-
-    if (isEditor) {
-      const createBtn = document.getElementById('create-tree-trigger-btn');
-      if (createBtn) createBtn.classList.remove('hidden');
-    }
-
-    // Bind Modals / Control events
-    this.bindControls(isEditor);
-
     // Render tree cards and statistics
     await this.render();
-  }
-
-  static bindControls(isEditor) {
-    const createModal = document.getElementById('create-tree-modal');
-    const editModal = document.getElementById('edit-tree-modal');
-
-    // Create modal toggles
-    const createTrigger = document.getElementById('create-tree-trigger-btn');
-    const closeCreate = document.getElementById('close-create-modal-btn');
-    const cancelCreate = document.getElementById('create-cancel-btn');
-
-    const openCreate = () => {
-      createModal.classList.remove('pointer-events-none', 'opacity-0');
-      createModal.classList.add('opacity-100');
-    };
-
-    const closeCreateFn = () => {
-      createModal.classList.add('pointer-events-none', 'opacity-0');
-      createModal.classList.remove('opacity-100');
-    };
-
-    if (createTrigger) createTrigger.addEventListener('click', openCreate);
-    if (closeCreate) closeCreate.addEventListener('click', closeCreateFn);
-    if (cancelCreate) cancelCreate.addEventListener('click', closeCreateFn);
-
-    // Edit modal toggles
-    const closeEdit = document.getElementById('close-edit-modal-btn');
-    const cancelEdit = document.getElementById('edit-cancel-btn');
-
-    const closeEditFn = () => {
-      editModal.classList.add('pointer-events-none', 'opacity-0');
-      editModal.classList.remove('opacity-100');
-    };
-
-    if (closeEdit) closeEdit.addEventListener('click', closeEditFn);
-    if (cancelEdit) cancelEdit.addEventListener('click', closeEditFn);
-
-    // Handle Create Tree form submission
-    const createForm = document.getElementById('create-tree-form');
-    if (createForm) {
-      createForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = document.getElementById('tree-name').value.trim();
-        const description = document.getElementById('tree-description').value.trim();
-        const coverImage = document.getElementById('tree-cover').value.trim();
-        const themeColor = document.getElementById('tree-theme').value;
-
-        try {
-          const treeId = name.toLowerCase().replace(/\s+/g, '-');
-          await treeRepository.create({
-            id: treeId,
-            treeId,
-            name,
-            description,
-            coverImage,
-            themeColor
-          });
-          closeCreateFn();
-          createForm.reset();
-          await this.render();
-        } catch (error) {
-          alert(`Error creating tree: ${error.message}`);
-        }
-      });
-    }
-
-    // Handle Edit Tree form submission
-    const editForm = document.getElementById('edit-tree-form');
-    if (editForm) {
-      editForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const id = document.getElementById('edit-tree-id').value;
-        const name = document.getElementById('edit-tree-name').value.trim();
-        const description = document.getElementById('edit-tree-description').value.trim();
-        const coverImage = document.getElementById('edit-tree-cover').value.trim();
-        const themeColor = document.getElementById('edit-tree-theme').value;
-
-        try {
-          await treeRepository.update(id, {
-            name,
-            description,
-            coverImage,
-            themeColor
-          });
-          closeEditFn();
-          await this.render();
-        } catch (error) {
-          alert(`Error updating tree: ${error.message}`);
-        }
-      });
-    }
-
-    // Handle Delete Tree
-    const deleteBtn = document.getElementById('delete-tree-btn');
-    if (deleteBtn) {
-      deleteBtn.addEventListener('click', async () => {
-        const id = document.getElementById('edit-tree-id').value;
-        if (id === 'house-of-lawal') {
-          alert("The House of Lawal core ancestral tree cannot be deleted.");
-          return;
-        }
-        if (confirm("Are you sure you want to permanently delete this tree? Sibling members of other trees will NOT be deleted, but tree reference will be removed.")) {
-          try {
-            await treeRepository.deleteTree(id);
-            closeEditFn();
-            await this.render();
-          } catch (error) {
-            alert(`Error deleting tree: ${error.message}`);
-          }
-        }
-      });
-    }
   }
 
   static async render() {
@@ -142,25 +18,52 @@ export class TreesPage {
     if (!grid) return;
 
     try {
-      const [trees, members, relationships] = await Promise.all([
-        treeRepository.findAll(),
+      // Predefined 4 static trees mapping
+      const defaultTrees = [
+        {
+          id: "house-of-lawal",
+          treeId: "house-of-lawal",
+          name: "Lawal Family Tree",
+          description: "The main Lawal ancestral tree, tracing the noble lineage of Alhaji Kolawole Lawal.",
+          coverImage: "LawalNG1.png",
+          themeColor: "gold",
+          pageUrl: "tree-lawal.html"
+        },
+        {
+          id: "grimster",
+          treeId: "grimster",
+          name: "Grimster Family Tree",
+          description: "The Grimster family lineage from Bristol and London, UK.",
+          coverImage: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=800&q=80",
+          themeColor: "emerald",
+          pageUrl: "tree-grimster.html"
+        },
+        {
+          id: "oluwanje",
+          treeId: "oluwanje",
+          name: "Oluwanje Family Tree",
+          description: "The Oluwanje family ancestral lineage from Abeokuta and Lagos, Nigeria.",
+          coverImage: "https://images.unsplash.com/photo-1464695115841-35f1954577df?auto=format&fit=crop&w=800&q=80",
+          themeColor: "blue",
+          pageUrl: "tree-oluwanje.html"
+        },
+        {
+          id: "ogunronbi",
+          treeId: "ogunronbi",
+          name: "Ogunronbi Family Tree",
+          description: "The Ogunronbi family ancestral lineage, holding rich cultural heritage.",
+          coverImage: "https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=800&q=80",
+          themeColor: "purple",
+          pageUrl: "tree-ogunronbi.html"
+        }
+      ];
+
+      const [members, relationships] = await Promise.all([
         familyRepository.findAll(),
         relationshipRepository.findAll()
       ]);
 
-      const user = getCurrentUser();
-      const isEditor = canEdit(user);
-
-      if (trees.length === 0) {
-        grid.innerHTML = `
-          <div class="col-span-full text-center py-12">
-            <p class="text-xs text-slate-500">No family trees registered.</p>
-          </div>
-        `;
-        return;
-      }
-
-      grid.innerHTML = trees.map(tree => {
+      grid.innerHTML = defaultTrees.map(tree => {
         const treeId = tree.treeId || tree.id;
 
         // 1. Calculate stats for this specific tree
@@ -251,41 +154,14 @@ export class TreesPage {
 
             <!-- Actions block -->
             <div class="px-6 pb-6 pt-2 flex gap-3 z-10 shrink-0">
-              <a href="tree.html?treeId=${treeId}" class="flex-grow h-10 rounded-xl text-slate-950 font-bold text-xs tracking-wider uppercase flex items-center justify-center gap-1.5 transition-colors ${accentBtn}">
+              <a href="${tree.pageUrl || 'tree.html?treeId=' + treeId}" class="flex-grow h-10 rounded-xl text-slate-950 font-bold text-xs tracking-wider uppercase flex items-center justify-center gap-1.5 transition-colors ${accentBtn}">
                 Open Tree <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
               </a>
-              ${isEditor ? `
-                <button class="edit-tree-trigger w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-all" data-id="${treeId}">
-                  <i class="fa-solid fa-gear"></i>
-                </button>
-              ` : ''}
             </div>
 
           </div>
         `;
       }).join('');
-
-      // Add click behaviors on edit buttons
-      if (isEditor) {
-        document.querySelectorAll('.edit-tree-trigger').forEach(btn => {
-          btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const id = e.currentTarget.getAttribute('data-id');
-            const matched = await treeRepository.findById(id);
-            if (matched) {
-              document.getElementById('edit-tree-id').value = id;
-              document.getElementById('edit-tree-name').value = matched.name;
-              document.getElementById('edit-tree-description').value = matched.description;
-              document.getElementById('edit-tree-cover').value = matched.coverImage || '';
-              document.getElementById('edit-tree-theme').value = matched.themeColor || 'gold';
-
-              const editModal = document.getElementById('edit-tree-modal');
-              editModal.classList.remove('pointer-events-none', 'opacity-0');
-              editModal.classList.add('opacity-100');
-            }
-          });
-        });
-      }
 
     } catch (error) {
       grid.innerHTML = `

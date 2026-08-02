@@ -53,7 +53,7 @@ export class Navigation {
     const menuItems = [
       { file: 'dashboard.html', icon: 'fa-chart-line', label: 'Dashboard' },
       { file: 'trees.html', icon: 'fa-tree', label: 'Family Trees' },
-      { file: 'tree.html', icon: 'fa-diagram-project', label: 'Family Tree' },
+      { file: 'tree-lawal.html', icon: 'fa-diagram-project', label: 'Family Tree', alternativeFiles: ['tree.html', 'tree-grimster.html', 'tree-oluwanje.html', 'tree-ogunronbi.html'] },
       { file: 'members.html', icon: 'fa-users', label: 'Family Members' },
       { file: 'history.html', icon: 'fa-landmark', label: 'Family History' },
       { file: 'gallery.html', icon: 'fa-images', label: 'Media Gallery' },
@@ -65,7 +65,7 @@ export class Navigation {
     ];
 
     const menuHtml = menuItems.map(item => {
-      const isActive = currentFile === item.file;
+      const isActive = currentFile === item.file || (item.alternativeFiles && item.alternativeFiles.includes(currentFile));
       const activeClass = isActive
         ? 'bg-gradient-to-r from-gold/15 to-transparent text-gold border-l-2 border-gold font-medium'
         : 'text-slate-400 hover:text-white hover:bg-white/5 border-l-2 border-transparent';
