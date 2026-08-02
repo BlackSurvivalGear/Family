@@ -52,8 +52,7 @@ export class Navigation {
 
     const menuItems = [
       { file: 'dashboard.html', icon: 'fa-chart-line', label: 'Dashboard' },
-      { file: 'trees.html', icon: 'fa-tree', label: 'Family Trees' },
-      { file: 'tree-lawal.html', icon: 'fa-diagram-project', label: 'Family Tree', alternativeFiles: ['tree.html', 'tree-grimster.html', 'tree-oluwanje.html', 'tree-ogunronbi.html'] },
+      { file: 'trees.html', icon: 'fa-tree', label: 'Family Trees', alternativeFiles: ['tree-lawal.html', 'tree.html', 'tree-grimster.html', 'tree-oluwanje.html', 'tree-ogunronbi.html'] },
       { file: 'members.html', icon: 'fa-users', label: 'Family Members' },
       { file: 'history.html', icon: 'fa-landmark', label: 'Family History' },
       { file: 'gallery.html', icon: 'fa-images', label: 'Media Gallery' },
